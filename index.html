@@ -22,28 +22,27 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <body>
 <div class="app">
 <header>
-  <div class="brand"><img src="mascot-logo.webp" alt="Ian sucks hockey mascot"><div><h1>Ian sucks</h1><p>FANTASY HOCKEY IQ</p></div></div>
-  <div class="status">EARLY BUILD · LOCAL DATA</div>
+<div class="brand"><img src="mascot-logo.webp" alt="Ian sucks hockey mascot"><div><h1>Ian sucks</h1><p>FANTASY HOCKEY IQ</p></div></div>
+<div class="status">EARLY BUILD · LOCAL DATA</div>
 </header>
 <nav id="nav">
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="team">My Team</button><button data-tab="league">League Setup</button><button data-tab="import">Import Screenshots</button><button data-tab="tools">Player Tools</button>
 </nav>
 <main>
 <section id="dashboard" class="page">
-  <div class="hero">
-    <div class="hero-copy"><span class="tag">YOUR FANTASY HOCKEY HQ</span><h2>Make the smart move.<br>Win your week.</h2><p>League-specific fantasy hockey decisions, built around your scoring, roster, schedule and weekly rules.</p></div>
-    <div class="hero-art"><img src="mascot-logo.webp" alt="Ian sucks illustrated hockey player mascot logo"></div>
-  </div>
-  <h2>Your hockey command centre</h2><p class="sub">Start with your league settings and roster. The tools will use those rules instead of generic rankings.</p>
-  <div class="grid">
-    <div class="card span-3"><div class="metric" id="rosterCount">0</div><div class="metric-label">Players on your roster</div></div>
-    <div class="card span-3"><div class="metric" id="leagueTeams">—</div><div class="metric-label">Teams in your league</div></div>
-    <div class="card span-3"><div class="metric" id="addsLeft">—</div><div class="metric-label">Weekly adds remaining</div></div>
-    <div class="card span-3"><div class="metric" id="goalieMin">—</div><div class="metric-label">Goalie minimum / week</div></div>
-    <div class="card span-7"><h3>Decision centre</h3><div class="callout">Recommendations should respect your exact Yahoo scoring, roster positions, weekly acquisition limit and goalie minimum.</div><div id="decisionText" class="muted">Set up your league and add your roster to get started.</div></div>
-    <div class="card span-5"><h3>Quick setup</h3><div class="recommend"><span>1. Enter league scoring and roster rules</span><span class="pill">Setup</span></div><div class="recommend"><span>2. Add your current roster</span><span class="pill">Team</span></div><div class="recommend"><span>3. Compare free-agent candidates</span><span class="pill">Tools</span></div><div class="btnrow"><button class="btn" onclick="showTab('league')">Set up league</button><button class="btn secondary" onclick="showTab('team')">Add players</button></div></div>
-    <div class="card span-12"><h3>Build roadmap</h3><div class="grid"><div class="span-4"><b>League-first engine</b><p class="small">Scoring, positional eligibility, roster slots, adds and goalie rules.</p></div><div class="span-4"><b>Hockey intelligence</b><p class="small">Next stages: NHL schedule, injuries, line deployment, power-play roles and projections.</p></div><div class="span-4"><b>Yahoo-assisted setup</b><p class="small">Screenshot-assisted entry first; automatic Yahoo connection can come later.</p></div></div></div>
-  </div>
+<div class="hero">
+<div class="hero-copy"><span class="tag">YOUR FANTASY HOCKEY HQ</span><h2>Make the smart move.<br>Win your week.</h2><p>League-specific fantasy hockey decisions, built around your scoring, roster, schedule and weekly rules.</p></div>
+<div class="hero-art"><img src="mascot-logo.webp" alt="Ian sucks illustrated hockey player mascot logo"></div>
+</div>
+<h2>Your hockey command centre</h2><p class="sub">Skipping CLASS for Hockey · Tony's Top Shelf · Head-to-head points. Your league rules and roster are already loaded.</p>
+<div class="grid">
+<div class="card span-3"><div class="metric" id="rosterCount">0</div><div class="metric-label">Players on your roster</div></div>
+<div class="card span-3"><div class="metric" id="leagueTeams">—</div><div class="metric-label">Teams in your league</div></div>
+<div class="card span-3"><div class="metric" id="addsLeft">—</div><div class="metric-label">Weekly adds remaining</div></div>
+<div class="card span-3"><div class="metric" id="goalieMin">—</div><div class="metric-label">Goalie minimum / week</div></div>
+<div class="card span-7"><h3>Decision centre</h3><div class="callout">Recommendations should respect your exact Yahoo scoring, roster positions, weekly acquisition limit and goalie minimum.</div><div id="decisionText" class="muted">Set up your league and add your roster to get started.</div></div>
+<div class="card span-5"><h3>Quick setup</h3><div class="recommend"><span>1. Upload screenshots or enter league rules</span><span class="pill">Setup</span></div><div class="recommend"><span>2. Add your current roster</span><span class="pill">Team</span></div><div class="recommend"><span>3. Check Pickups, Streaming and Schedule</span><span class="pill">Tools</span></div><div class="btnrow"><button class="btn" onclick="showTab('import')">Upload screenshots</button><button class="btn secondary" onclick="showTab('pickups')">Best pickups</button></div></div>
+</div>
 </section>
 <section id="team" class="page hidden">
 <h2>My Team</h2><p class="sub">Save your roster in this browser and update it whenever your Yahoo team changes.</p>
@@ -59,8 +58,8 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 </div>
 </section>
 <section id="import" class="page hidden">
-<h2>Import Screenshots</h2><p class="sub">Preview Yahoo screenshots here while entering the information into your league and roster pages.</p>
-<div class="card"><div class="callout"><b>Note:</b> this first version previews screenshots but does not yet read text from them automatically. We will add recognition in a later stage.</div><div class="upload"><div style="font-size:30px">📷</div><b>Choose Yahoo screenshots</b><p class="small">Roster, league scoring, roster positions or free-agent list.</p><input id="screenshots" type="file" accept="image/*" multiple onchange="previewImages(event)"><div id="imagePreview" class="preview"></div></div><div class="btnrow"><button class="btn secondary" onclick="showTab('team')">Enter roster</button><button class="btn secondary" onclick="showTab('league')">Enter league settings</button></div></div>
+<h2>Import Screenshots</h2><p class="sub">Upload Yahoo screenshots and read them for free.</p>
+<div class="card"><div class="callout"><b>Note:</b> choose screenshots.</div><div class="upload"><div style="font-size:30px">📷</div><b>Choose Yahoo screenshots</b><p class="small">Roster, league scoring, roster positions or free-agent list.</p><input id="screenshots" type="file" accept="image/*" multiple onchange="previewImages(event)"><div id="imagePreview" class="preview"></div></div><div class="btnrow"><button class="btn secondary" onclick="showTab('team')">Enter roster</button><button class="btn secondary" onclick="showTab('league')">Enter league settings</button></div></div>
 </section>
 <section id="tools" class="page hidden">
 <h2>Player Tools</h2><p class="sub">Compare candidates with your league's scoring. Add projected stats to estimate fantasy value.</p>
@@ -71,11 +70,12 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · Not affiliated with Yahoo or the NHL</div>
 </div>
 <script>
-const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.25,SHO:0};
-const slotDefaults={C:2,W:4,D:4,G:2,BN:4,IR:2};
+const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.5,SHO:3};
+const slotDefaults={C:2,W:4,D:4,G:2,BN:4,IR:2,'IR+':1};
 let league={teams:10,addLimit:4,goalieMinimum:3,addsUsed:0,scoring:{...scoringDefaults},slots:{...slotDefaults}};
 let roster=[];
 try{const saved=JSON.parse(localStorage.getItem('ihq_league')||'{}');league={...league,...saved,scoring:{...scoringDefaults,...saved.scoring},slots:{...slotDefaults,...saved.slots}};roster=JSON.parse(localStorage.getItem('ihq_roster')||'[]')}catch(e){}
+if(localStorage.getItem('ihq_cfg')!=='v2'){league={...league,teams:10,addLimit:4,goalieMinimum:3,scoring:{...scoringDefaults},slots:{...slotDefaults}};if(!roster.length)roster=[{name:'Sebastian Aho',pos:'C'},{name:'Nathan MacKinnon',pos:'C'},{name:'Mark Stone',pos:'W'},{name:'Andrei Svechnikov',pos:'W'},{name:'Jake Guentzel',pos:'W'},{name:'Sam Reinhart',pos:'W'},{name:'Adrian Kempe',pos:'W'},{name:'Filip Forsberg',pos:'W'},{name:'Evgeni Malkin',pos:'C'},{name:'Logan Cooley',pos:'C'},{name:'Evan Bouchard',pos:'D'},{name:'Luke Hughes',pos:'D'},{name:'Vince Dunn',pos:'D'},{name:'Filip Hronek',pos:'D'},{name:'Jake Oettinger',pos:'G'},{name:'Stuart Skinner',pos:'G'},{name:'Mathew Barzal',pos:'C',ir:1},{name:'Filip Gustavsson',pos:'G',ir:1}].map(p=>({id:Date.now()+Math.random(),team:'',...p}));localStorage.setItem('ihq_league',JSON.stringify(league));localStorage.setItem('ihq_roster',JSON.stringify(roster));localStorage.setItem('ihq_cfg','v2')}
 const $=id=>document.getElementById(id);
 function persist(){localStorage.setItem('ihq_league',JSON.stringify(league));localStorage.setItem('ihq_roster',JSON.stringify(roster));refresh()}
 function showTab(id){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));$(id).classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='team')renderRoster()}
@@ -96,8 +96,193 @@ function points(s){return Object.entries(league.scoring).reduce((sum,[k,v])=>sum
 function calculatePoints(){const s={};Object.keys(league.scoring).forEach(k=>s[k]=+$('calc_'+k).value);$('calcResult').innerHTML=`<div class="metric">${points(s).toFixed(2)}</div><div class="small">Estimated fantasy points using your saved scoring.</div>`}
 function comparePlayers(){const names=[$('candidateA').value||'Candidate A',$('candidateB').value||'Candidate B'];const vals=['A','B'].map(p=>{const s={};Object.keys(league.scoring).forEach(k=>s[k]=+$('cmp'+p+'_'+k).value);return points(s)});const winner=vals[0]===vals[1]?'Even projection':names[vals[0]>vals[1]?0:1]+' projects higher';$('compareResult').innerHTML=`<div class="recommend"><span>${esc(names[0])}</span><b>${vals[0].toFixed(2)} pts</b></div><div class="recommend"><span>${esc(names[1])}</span><b>${vals[1].toFixed(2)} pts</b></div><p class="tag">${esc(winner)}</p><p class="small">This estimate depends on the projections entered. Schedule, injuries, role and availability are not included yet.</p>`}
 function previewImages(e){$('imagePreview').innerHTML='';[...e.target.files].forEach(f=>{if(!f.type.startsWith('image/'))return;const img=document.createElement('img');img.src=URL.createObjectURL(f);img.alt=f.name;$('imagePreview').appendChild(img)})}
-function refresh(){$('rosterCount').textContent=roster.length;$('leagueTeams').textContent=league.teams||'—';$('addsLeft').textContent=Math.max(0,(league.addLimit||0)-(league.addsUsed||0));$('goalieMin').textContent=league.goalieMinimum??'—';$('decisionText').textContent=roster.length?`You have ${roster.length} players saved. Add free-agent candidates and projections in Player Tools to compare them using your league scoring.`:'Add your league settings and roster to begin personalized comparisons.'}
+function refresh(){$('rosterCount').textContent=roster.length;$('leagueTeams').textContent=league.teams||'—';$('addsLeft').textContent=Math.max(0,(league.addLimit||0)-(league.addsUsed||0));$('goalieMin').textContent=league.goalieMinimum??'—';$('decisionText').textContent=roster.length?`You have ${roster.length} players saved. Open Pickups, Streaming and Coach for your best moves.`:'Add your league settings and roster to begin personalized comparisons.'}
 buildFields();loadLeague();refresh();renderRoster();
+</script>
+<script>
+/* Fantasy Hockey IQ features */
+(()=>{
+const $=id=>document.getElementById(id),K=localStorage;
+const S={avail:JSON.parse(K.getItem('ihq_avail')||'[]'),pos:'ALL',wk:0};
+const N=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f.'’-]/g,'').toLowerCase().trim();
+const SE=encodeURIComponent('seasonId=20262027 and gameTypeId=2');
+const J=u=>fetch(u).then(r=>{if(!r.ok)throw new Error('NHL data error '+r.status);return r.json()});
+const ds=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const mon=o=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)+o);return ds(d)};
+const today=ds(new Date());
+let D=null;
+
+const sch=w=>{const t={};(w.gameWeek||[]).forEach(day=>(day.games||[]).forEach(g=>{if(g.gameType&&g.gameType!==2)return;[[g.awayTeam,g.homeTeam,0],[g.homeTeam,g.awayTeam,1]].forEach(([a,o,h])=>(t[a.abbrev]=t[a.abbrev]||[]).push({date:day.date,opp:o.abbrev,home:h}))}))
+return t};
+const pos=c=>c==='D'?'D':c==='C'?'C':'W';
+const last=t=>(t||'').split(',').pop().trim();
+
+async function load(){
+ if(D)return D;
+ const b='https://api.nhle.com/stats/rest/en/',q='?limit=-1&cayenneExp='+SE;
+ const [sk,rt,gl,st,w0,w1]=await Promise.all([J(b+'skater/summary'+q),J(b+'skater/realtime'+q),J(b+'goalie/summary'+q),J('https://api-web.nhle.com/v1/standings/now'),J('https://api-web.nhle.com/v1/schedule/'+mon(0)),J('https://api-web.nhle.com/v1/schedule/'+mon(7))]);
+ const rr={};rt.data.forEach(p=>rr[p.playerId]=p);
+ D={sk:sk.data.map(p=>{const r=rr[p.playerId]||{};return{n:p.skaterFullName,pos:pos(p.positionCode),t:last(p.teamAbbrevs),gp:p.gamesPlayed,s:{G:p.goals,A:p.assists,PPP:p.ppPoints,SHP:p.shPoints,SOG:p.shots,HIT:r.hits||0,BLK:r.blockedShots||0}}}),
+ gl:gl.data.map(p=>({n:p.goalieFullName,pos:'G',t:last(p.teamAbbrevs),gp:p.gamesStarted||p.gamesPlayed,sv:p.savePct,gaa:p.goalsAgainstAverage,s:{W:p.wins,GA:p.goalsAgainst,SV:p.saves,SHO:p.shutouts}})),
+ tgp:Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.gamesPlayed])),off:Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.goalFor/Math.max(1,x.gamesPlayed)])),sch:[sch(w0),sch(w1)]};
+ const s=document.querySelector('.status');if(s)s.textContent='LIVE NHL DATA';
+ return D;
+}
+const gms=(t,w)=>((D.sch[w]||{})[t]||[]).filter(g=>w||g.date>=today);
+const ppg=p=>p.gp?Object.entries(p.s).reduce((a,[k,v])=>a+(v||0)*(league.scoring[k]||0),0)/p.gp:0;
+const proj=(p,w)=>ppg(p)*gms(p.t,w).length*(p.pos==='G'?Math.min(1,p.gp/Math.max(1,D.tgp[p.t]||p.gp)):1);
+const pool=l=>{const own=new Set(roster.map(p=>N(p.name))),av=S.avail.length?new Set(S.avail.map(N)):null;return l.filter(p=>p.gp>=3&&!own.has(N(p.n))&&(!av||av.has(N(p.n))))};
+const me=r=>{const c=[...D.sk,...D.gl].filter(p=>N(p.n)===N(r.name));return c.find(p=>pg(p.pos)===pg(r.pos))||c[0]};
+const wrap=h=>`<div style="overflow:auto">${h}</div>`;
+const tbl=(h,rows)=>wrap(`<table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+const err=e=>`<div class="callout">Couldn't load NHL data right now (${esc(e.message)}). Check your connection and reopen this tab.</div>`;
+const sel=(id,opts,cur,fn)=>`<select id="${id}" onchange="IHQ.${fn}(this.value)" style="width:auto">${opts.map(([v,l])=>`<option value="${v}"${v==cur?' selected':''}>${l}</option>`).join('')}</select>`;
+const wkSel=()=>sel('wkSel',[[0,'This week (games left)'],[1,'Next week']],S.wk,'wk');
+const availNote=()=>S.avail.length?`<span class="tag">Using your ${S.avail.length} free agents</span>`:`<p class="small">Tip: Yahoo doesn't share who is available. Upload a Free Agents screenshot in Import Screenshots so this list only shows players you can actually add.</p>`;
+
+/* ---------- tabs ---------- */
+const nav=$('nav'),main=document.querySelector('main');
+[['matchup','Matchup'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
+ const b=document.createElement('button');b.dataset.tab=id;b.textContent=l;b.onclick=()=>showTab(id);nav.appendChild(b);
+ const s=document.createElement('section');s.id=id;s.className='page hidden';main.appendChild(s)});
+const R={};
+const oldShow=window.showTab;
+window.showTab=id=>{oldShow(id);if(R[id]){$(id).innerHTML='<div class="empty">Loading…</div>';R[id]().catch(e=>$(id).innerHTML=err(e))}};
+const redraw=()=>{const a=document.querySelector('.page:not(.hidden)');if(a&&R[a.id])R[a.id]().catch(e=>a.innerHTML=err(e))};
+window.IHQ={pos:v=>{S.pos=v;redraw()},wk:v=>{S.wk=+v;redraw()}};
+
+/* ---------- Pickups ---------- */
+R.pickups=async()=>{
+ await load();const w=S.wk;
+ let l=pool(D.sk).filter(p=>S.pos==='ALL'||p.pos===S.pos).map(p=>({p,v:proj(p,w),g:gms(p.t,w).length})).sort((a,b)=>b.v-a.v).slice(0,20);
+ const mine=roster.map(r=>{const f=me(r);return f?{p:f,v:proj(f,w),g:gms(f.t,w).length}:{p:{n:r.name,pos:r.pos,t:r.team,gp:0},v:null,g:0}}).sort((a,b)=>(a.v??-1)-(b.v??-1));
+ const row=x=>[`<b>${esc(x.p.n)}</b>`,x.p.pos,x.p.t,x.g,x.v==null?'—':ppg(x.p).toFixed(2),x.v==null?'—':`<b>${x.v.toFixed(1)}</b>`];
+ $('pickups').innerHTML=`<h2>Best Pickups</h2><p class="sub">Players ranked by how many fantasy points they should score, using YOUR league scoring and how many games their team plays.</p>
+ <div class="btnrow" style="margin:0 0 14px">${sel('posSel',[['ALL','All positions'],['C','Centers'],['W','Wingers'],['D','Defense']],S.pos,'pos')}${wkSel()}</div>${availNote()}
+ <div class="grid"><div class="card span-7"><h3>Top adds</h3>${l.length?tbl(['Player','Pos','Team','Games','Pts/game','Projected'],l.map(row)):'<div class="empty">No players found.</div>'}</div>
+ <div class="card span-5"><h3>Your roster, weakest first</h3><p class="small">Your lowest scorers are the best drop candidates.</p>${mine.length?tbl(['Player','Pos','Team','Games','Pts/game','Projected'],mine.map(row)):'<div class="empty">Add your roster first.</div>'}</div></div>
+ <p class="small" style="margin-top:12px">Based on this season's stats so far, so early-season numbers can swing a lot.</p>`;
+};
+
+/* ---------- Streaming (goalies) ---------- */
+R.streaming=async()=>{
+ await load();const w=S.wk;
+ const l=pool(D.gl).map(p=>{const g=gms(p.t,w),o=g.length?g.reduce((a,x)=>a+(D.off[x.opp]||3),0)/g.length:3;return{p,g:g.length,o,v:proj(p,w)*(3/o)}}).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,15);
+ $('streaming').innerHTML=`<h2>Goalie Streaming</h2><p class="sub">Goalies with the best week: more games and easier opponents (teams that score less). Remember your league needs ${league.goalieMinimum} goalie appearances per week and you have ${Math.max(0,league.addLimit-league.addsUsed)} adds left.</p>
+ <div class="btnrow" style="margin:0 0 14px">${wkSel()}</div>${availNote()}
+ <div class="card">${l.length?tbl(['Goalie','Team','Games','Opp. goals/game','Save %','Rating'],l.map(x=>[`<b>${esc(x.p.n)}</b>`,x.p.t,x.g,x.o.toFixed(2)+(x.o<2.8?' <span class="pill">easy</span>':''),x.p.sv?x.p.sv.toFixed(3):'—',`<b>${x.v.toFixed(1)}</b>`])):'<div class="empty">No goalies found.</div>'}</div>
+ <p class="small" style="margin-top:12px">Want skater streamers? Open Pickups and choose a week: players on teams with 4 or more games rank highest.</p>`;
+};
+
+/* ---------- Schedule ---------- */
+R.schedule=async()=>{
+ await load();const w=S.wk,mine=new Set(roster.map(r=>{const f=me(r);return f?f.t:(r.team||'').toUpperCase()}));
+ const rows=Object.keys(D.sch[w]).map(t=>({t,g:gms(t,w)})).filter(x=>x.g.length).sort((a,b)=>b.g.length-a.g.length||a.t.localeCompare(b.t));
+ const day=d=>['Su','Mo','Tu','We','Th','Fr','Sa'][new Date(d+'T12:00:00').getDay()];
+ $('schedule').innerHTML=`<h2>NHL Schedule</h2><p class="sub">More games means more chances to score. Teams with your players are highlighted.</p>
+ <div class="btnrow" style="margin:0 0 14px">${wkSel()}</div>
+ <div class="card">${tbl(['Team','Games','Matchups'],rows.map(x=>[mine.has(x.t)?`<b style="color:var(--gold)">${x.t} ★</b>`:`<b>${x.t}</b>`,x.g.length>=4?`<span class="pill">${x.g.length}</span>`:x.g.length,x.g.map(g=>`${day(g.date)} ${g.home?'vs':'@'}${g.opp}`).join(', ')]))}</div>`;
+};
+
+/* ---------- Matchup ---------- */
+const erf=x=>{const t=1/(1+.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x<0?-y:y};
+const share=p=>Math.min(1,p.gp/Math.max(1,D.tgp[p.t]||p.gp));
+const lineup=pl=>{const sl=league.slots,pk=(g,n)=>pl.filter(x=>x.p.pos===g).sort((a,b)=>b.v-a.v).slice(0,n);return[...pk('C',sl.C),...pk('W',sl.W),...pk('D',sl.D),...pk('G',sl.G)]};
+const wrapP=p=>({p,v:proj(p,0),g:gms(p.t,0).length});
+R.matchup=async()=>{
+ await load();const m=JSON.parse(K.getItem('ihq_mu')||'{}');
+ $('matchup').innerHTML=`<h2>Matchup</h2><p class="sub">Enter this week's score and who you're playing. You'll get a win chance and exactly who to stream, using your league scoring.</p>
+ <div class="grid"><div class="card span-5"><h3>This week</h3><div class="formgrid"><div class="field"><label>My score so far</label><input id="muMe" type="number" step=".01" value="${m.ms??''}"></div><div class="field"><label>Opponent score so far</label><input id="muOpp" type="number" step=".01" value="${m.os??''}"></div></div>
+ <div class="field"><label>Goalie starts my team has had so far this week</label><input id="muG" type="number" min="0" value="${m.gs??0}"></div>
+ <div class="field"><label>Opponent's players (names, one per line or separated by commas). You can also upload a screenshot of their roster in Import Screenshots.</label><textarea id="muTxt" rows="6" style="width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit">${esc(m.txt||'')}</textarea></div>
+ <button class="btn" onclick="IHQ.mu()">Analyze my matchup</button></div><div class="span-7" id="muOut"><div class="empty">Fill in the scores and tap Analyze.</div></div></div>`;
+ if(m.ms!=null)IHQ.mu();
+};
+IHQ.mu=()=>{
+ const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG').value||0,txt=$('muTxt').value;
+ K.setItem('ihq_mu',JSON.stringify({ms,os,gs,txt}));
+ const all=[...D.sk,...D.gl],left=Math.max(0,league.addLimit-league.addsUsed);
+ const fp=n=>{const t=N(n);let c=all.filter(p=>N(p.n)===t);if(!c.length)c=all.filter(p=>N(p.n).endsWith(' '+t));return c.sort((a,b)=>b.gp-a.gp)[0]};
+ const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(wrapP),opn=txt.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean).map(fp).filter(Boolean).map(wrapP);
+ const ml=lineup(mine),ol=lineup(opn),sum=l=>l.reduce((a,x)=>a+x.v,0),mp=sum(ml),op=opn.length?sum(ol):mp*.95;
+ const diff=ms+mp-(os+op),sd=Math.max(10,.22*Math.sqrt(mp*mp+op*op)),wp=Math.round(50*(1+erf(diff/sd/Math.SQRT2)));
+ const st=wp>=65?'ahead':wp<=35?'behind':'close';
+ const say={ahead:`You're projected to <b>win</b>. Play it safe: fix any player with no games left and make sure you hit your goalie minimum. Don't chase risky streams.`,behind:`You're projected to <b>lose</b>. You need upside, so add the players with the most games left and the best scoring rate.`,close:`This one is <b>close</b>. Every point counts, so upgrade your weakest spots.`}[st];
+ const grp=g=>[ml,ol].map(l=>l.filter(x=>x.p.pos===g).reduce((a,x)=>a+x.v,0).toFixed(1));
+ const cands=pool(D.sk).map(wrapP).sort((a,b)=>b.v-a.v),recs=[],used=new Set();
+ ml.filter(x=>x.p.pos!=='G').sort((a,b)=>a.v-b.v).forEach(d=>{if(recs.length>=left||(st==='ahead'&&d.g>0))return;const a=cands.find(x=>!used.has(x.p.n)&&x.p.pos===d.p.pos&&x.v>d.v+(st==='ahead'?2:.5));if(a){used.add(a.p.n);recs.push([d,a])}});
+ const exp=ml.filter(x=>x.p.pos==='G').reduce((a,x)=>a+x.g*share(x.p),0),pace=gs+exp,need=pace<league.goalieMinimum;
+ const gc=pool(D.gl).map(p=>({p,g:gms(p.t,0).length,v:proj(p,0)})).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,2);
+ const rl=recs.map(([d,a])=>`<div class="recommend"><span><b>Drop ${esc(d.p.n)}, add ${esc(a.p.n)}</b> (${esc(a.p.t)}, ${a.p.pos})<br><span class="small">${d.g?`${d.g} game${d.g>1?'s':''} left, about ${d.v.toFixed(1)} pts`:'no games left'} → ${a.g} games, about ${a.v.toFixed(1)} pts</span></span><span class="pill">+${(a.v-d.v).toFixed(1)}</span></div>`).join('');
+ $('muOut').innerHTML=`<div class="card"><div class="grid" style="margin-bottom:12px"><div class="span-4"><div class="metric">${(ms+mp).toFixed(0)}</div><div class="metric-label">You (projected final)</div></div><div class="span-4"><div class="metric">${(os+op).toFixed(0)}</div><div class="metric-label">Opponent${opn.length?'':' (estimate)'}</div></div><div class="span-4"><div class="metric">${wp}%</div><div class="metric-label">Your win chance (rough)</div></div></div><div class="callout">${say}</div>
+ ${opn.length?'':'<p class="small">Add your opponent\'s players for a more accurate read.</p>'}
+ ${tbl(['','You','Opp.'],['C','W','D','G'].map(g=>[g,...grp(g)]))}</div>
+ <div class="card" style="margin-top:14px"><h3>Who to stream (${left} add${left===1?'':'s'} left)</h3>${rl||`<div class="empty">${left?'No upgrades worth an add right now.':'No adds left this week.'}</div>`}
+ ${need?`<div class="callout" style="margin-top:12px"><b>Goalie warning:</b> you're on pace for about ${pace.toFixed(1)} starts and your league needs ${league.goalieMinimum}. Stream a goalie.</div>`:`<p class="small">Goalie minimum looks safe (about ${pace.toFixed(1)} starts of ${league.goalieMinimum}).</p>`}
+ ${(need||st==='behind')&&gc.length?gc.map(x=>`<div class="recommend"><span><b>Goalie: ${esc(x.p.n)}</b> (${esc(x.p.t)})<br><span class="small">${x.g} game${x.g>1?'s':''} left, about ${x.v.toFixed(1)} pts</span></span><span class="pill">${st==='behind'?'upside':'fills minimum'}</span></div>`).join(''):''}</div>
+ <p class="small" style="margin-top:12px">Projections use this season's stats and the games left, so they're an estimate. Check Yahoo for injuries before adding anyone.</p>`;
+};
+
+/* ---------- Coach (free, built-in rules) ---------- */
+const pg=p=>p==='D'?'D':p==='G'?'G':'F';
+R.coach=async()=>{
+ await load();const w=S.wk,left=Math.max(0,league.addLimit-league.addsUsed);
+ const own=roster.filter(r=>!r.ir).map(r=>{const f=me(r);return f?{p:f,v:proj(f,w),g:gms(f.t,w).length}:null}).filter(Boolean).sort((a,b)=>a.v-b.v);
+ const adds=pool(D.sk).map(p=>({p,v:proj(p,w),g:gms(p.t,w).length})).sort((a,b)=>b.v-a.v);
+ const gl=pool(D.gl).map(p=>({p,g:gms(p.t,w).length,v:proj(p,w)})).filter(x=>x.g).sort((a,b)=>b.v-a.v);
+ const tips=[],used=new Set();
+ own.filter(x=>x.p.pos!=='G').forEach(d=>{if(tips.length>=Math.min(left,3))return;
+  const a=adds.find(x=>!used.has(x.p.n)&&pg(x.p.pos)===pg(d.p.pos)&&x.v>d.v+1);
+  if(a){used.add(a.p.n);tips.push(`<b>Drop ${esc(d.p.n)}, add ${esc(a.p.n)}.</b> ${esc(a.p.n)} should score about ${a.v.toFixed(1)} points (${a.g} games) vs ${d.v.toFixed(1)} for ${esc(d.p.n)} (${d.g} games).`)}});
+ if(gl[0])tips.push(`<b>Goalie idea: ${esc(gl[0].p.n)}</b> (${esc(gl[0].p.t)}) plays ${gl[0].g} games ${w?'next week':'the rest of this week'}. Your league needs ${league.goalieMinimum} goalie starts a week, so make sure you get there.`);
+ const msg=!roster.length?'Add your roster first (or upload a roster screenshot) and I\'ll suggest moves.':!left?'You have no adds left this week, so hold your team and plan next week.':tips.length?'':'Your team looks solid. No clear upgrades found right now.';
+ $('coach').innerHTML=`<h2>Coach</h2><p class="sub">Simple add/drop advice using your scoring, the schedule and your adds left (${left}).</p>
+ <div class="btnrow" style="margin:0 0 14px">${wkSel()}</div><div class="card">${tips.map(t=>`<div class="recommend"><span>${t}</span></div>`).join('')}${msg?`<div class="empty">${msg}</div>`:''}</div>
+ <p class="small" style="margin-top:12px">Advice comes from this season's stats, so treat it as a smart starting point. Check injuries on Yahoo before you add anyone.</p>`;
+};
+
+/* ---------- Screenshot reading (free, runs in your browser) ---------- */
+const imp=document.querySelector('#import .card');
+imp.querySelector('.callout').innerHTML='<b>Free:</b> pick what the screenshots show, choose them, then tap <b>Read screenshots</b>. Text is read right on your device. Nothing is uploaded or paid for.';
+imp.insertAdjacentHTML('beforeend',`<div class="field" style="margin-top:16px"><label>What are these screenshots?</label><select id="shotType"><option value="roster">My roster</option><option value="avail">Free agent list</option><option value="opp">Opponent roster</option><option value="league">League scoring settings</option></select></div><div class="btnrow"><button class="btn" id="readBtn">Read screenshots</button></div><div id="readOut" style="margin-top:14px"></div>`);
+let T=null;
+const ocr=()=>T||(T=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js';s.onload=()=>ok(window.Tesseract);s.onerror=()=>{T=null;no(new Error('Could not load the free text reader. Check your connection.'))};document.head.appendChild(s)}));
+const KEYS={G:/goals(?! against)/,A:/assists/,PPP:/power ?play points/,SHP:/short ?handed points/,SOG:/shots on goal/,HIT:/hits/,BLK:/blocks?/,W:/wins/,GA:/goals against(?! average)/,SV:/saves(?! percentage)/,SHO:/shutouts/};
+let X=null;
+$('readBtn').onclick=async()=>{
+ const o=$('readOut'),fs=[...$('screenshots').files].filter(f=>f.type.startsWith('image/')),type=$('shotType').value;
+ if(!fs.length)return o.innerHTML='<div class="callout">Choose at least one screenshot first.</div>';
+ try{
+  o.textContent='Loading free text reader…';const Tz=await ocr(),wk=await Tz.createWorker('eng');let text='';
+  for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;text+='\n'+(await wk.recognize(fs[i])).data.text}
+  await wk.terminate();
+  if(type==='league'){
+   const t=text.toLowerCase().replace(/[−–—]/g,'-'),f={};
+   Object.entries(KEYS).forEach(([k,r])=>{const m=t.match(new RegExp(r.source+'[^\\d\\-\\n]{0,18}(-?\\d+(?:\\.\\d+)?)'));if(m)f[k]=+m[1]});
+   X={type,f};const n=Object.keys(f).length;
+   o.innerHTML=n?`<div class="callout">Found ${n} scoring values: ${Object.entries(f).map(([k,v])=>`${k} ${v}`).join(', ')}. Tap Apply, then double-check them in League Setup.</div><button class="btn" onclick="IHQ.apply()">Apply</button>`:'<div class="callout">Couldn\'t find scoring numbers. Try a clearer, zoomed-in screenshot of the scoring page, or enter them in League Setup.</div>';
+   return}
+  await load();
+  const tx=' '+N(text).replace(/\s+/g,' ')+' ',all=[...D.sk,...D.gl],init={};
+  all.forEach(p=>{const a=N(p.n).split(' ');const k=a[0][0]+' '+a.slice(1).join(' ');(init[k]=init[k]||[]).push(p)});
+  const found=new Map();
+  all.forEach(p=>{if(tx.includes(' '+N(p.n)+' '))(found.get(N(p.n))||found.set(N(p.n),[]).get(N(p.n))).push(p)});
+  Object.entries(init).forEach(([k,l])=>{if(l.length===1&&tx.includes(' '+k+' ')&&!found.has(N(l[0].n)))found.set(N(l[0].n),[l[0]])});
+  const m=[...found.values()].map(l=>l.length>1?(l.find(p=>tx.includes(' '+p.t.toLowerCase()+' '))||l.sort((a,b)=>b.gp-a.gp)[0]):l[0]);
+  X={type,m};
+  o.innerHTML=m.length?`<div class="callout">Found ${m.length} players: ${m.map(p=>esc(p.n)).join(', ')}. Tap Apply to use them as ${type==='roster'?'your roster':type==='opp'?'your opponent\'s roster':'your free-agent list'}.</div><button class="btn" onclick="IHQ.apply()">Apply</button>`:'<div class="callout">Couldn\'t match any players. Try a clearer screenshot that shows full player names.</div>';
+ }catch(e){o.innerHTML=`<div class="callout">Problem: ${esc(e.message)}</div>`}
+};
+IHQ.apply=()=>{
+ const o=$('readOut');
+ if(X.type==='league'){Object.assign(league.scoring,X.f);persist();buildFields();loadLeague();o.innerHTML='<div class="callout">Applied ✓ Please check the numbers in League Setup.</div>';return}
+ if(X.type==='roster'){roster=X.m.map(p=>({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t}));persist();renderRoster()}
+ else if(X.type==='opp'){const u=JSON.parse(K.getItem('ihq_mu')||'{}');u.txt=X.m.map(p=>p.n).join(', ');K.setItem('ihq_mu',JSON.stringify(u));o.innerHTML='<div class="callout">Applied ✓ Open Matchup to compare.</div>';return}
+ else{S.avail=X.m.map(p=>p.n);K.setItem('ihq_avail',JSON.stringify(S.avail))}
+ o.innerHTML='<div class="callout">Applied ✓ Open Pickups to see your best adds.</div>';
+};
+})();
+
 </script>
 </body>
 </html>
