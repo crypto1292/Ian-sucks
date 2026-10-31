@@ -67,7 +67,7 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="card span-7"><h3>Quick scoring calculator</h3><p class="small">Estimate fantasy points from a projected stat line.</p><div class="formgrid" id="calcInputs"></div><button class="btn" onclick="calculatePoints()">Calculate points</button><div id="calcResult" style="margin-top:14px"></div></div></div>
 </section>
 </main>
-<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v7 · Not affiliated with Yahoo or the NHL</div>
+<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v8 · Not affiliated with Yahoo or the NHL</div>
 </div>
 <script>
 const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.5,SHO:3};
@@ -106,7 +106,9 @@ const $=id=>document.getElementById(id),K=localStorage;
 const S={avail:JSON.parse(K.getItem('ihq_avail')||'[]'),pos:'ALL',wk:0};
 const N=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f.'’-]/g,'').toLowerCase().trim();
 const SE=encodeURIComponent('seasonId=20262027 and gameTypeId=2');
-const J=u=>fetch(u).then(r=>{if(!r.ok)throw new Error('NHL data error '+r.status);return r.json()});
+let PM=0;
+const PX=[x=>x,x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://api.codetabs.com/v1/proxy/?quest='+x,x=>'https://corsproxy.io/?url='+encodeURIComponent(x)];
+const J=async u=>{let e;for(let i=0;i<PX.length;i++){const k=(PM+i)%PX.length;try{const r=await fetch(PX[k](u));if(!r.ok)throw new Error('status '+r.status);const j=await r.json();PM=k;return j}catch(x){e=x}}throw new Error('could not reach '+new URL(u).host+': '+((e&&e.message)||e))};
 const ds=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const mon=o=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)+o);return ds(d)};
 const today=ds(new Date());
@@ -118,6 +120,11 @@ const pos=c=>c==='D'?'D':c==='C'?'C':'W';
 const last=t=>(t||'').split(',').pop().trim();
 
 async function load(){
+ if(D)return D;
+ try{await load0();try{K.setItem('ihq_D',JSON.stringify({t:Date.now(),D}))}catch(x){}}catch(e){const c=K.getItem('ihq_D');if(!c)throw e;D=JSON.parse(c).D}
+ return D;
+}
+async function load0(){
  if(D)return D;
  const b='https://api.nhle.com/stats/rest/en/',q='?limit=-1&cayenneExp='+SE;
  const [sk,rt,gl,st,w0,w1]=await Promise.all([J(b+'skater/summary'+q),J(b+'skater/realtime'+q),J(b+'goalie/summary'+q),J('https://api-web.nhle.com/v1/standings/now'),J('https://api-web.nhle.com/v1/schedule/'+mon(0)),J('https://api-web.nhle.com/v1/schedule/'+mon(7))]);
