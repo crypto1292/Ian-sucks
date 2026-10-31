@@ -67,7 +67,7 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="card span-7"><h3>Quick scoring calculator</h3><p class="small">Estimate fantasy points from a projected stat line.</p><div class="formgrid" id="calcInputs"></div><button class="btn" onclick="calculatePoints()">Calculate points</button><div id="calcResult" style="margin-top:14px"></div></div></div>
 </section>
 </main>
-<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v8 · Not affiliated with Yahoo or the NHL</div>
+<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v10 · Not affiliated with Yahoo or the NHL</div>
 </div>
 <script>
 const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.5,SHO:3};
@@ -124,22 +124,33 @@ async function load(){
  try{await load0();try{K.setItem('ihq_D',JSON.stringify({t:Date.now(),D}))}catch(x){}}catch(e){const c=K.getItem('ihq_D');if(!c)throw e;D=JSON.parse(c).D}
  return D;
 }
+async function viaClub(st){
+ const r=await Promise.all(st.standings.map(x=>x.teamAbbrev.default).map(t=>J('https://api-web.nhle.com/v1/club-stats/'+t+'/now').then(d=>({t,d}))));
+ const SK=[],GL=[],nm=p=>p.firstName.default+' '+p.lastName.default;
+ r.forEach(({t,d})=>{(d.skaters||[]).forEach(p=>SK.push({n:nm(p),pos:pos(p.positionCode),t,gp:p.gamesPlayed,s:{G:p.goals,A:p.assists,PPP:(p.powerPlayGoals||0)*2,SHP:p.shorthandedGoals||0,SOG:p.shots,HIT:0,BLK:0}}));(d.goalies||[]).forEach(p=>GL.push({n:nm(p),pos:'G',t,gp:p.gamesStarted||p.gamesPlayed,sv:p.savePercentage,gaa:p.goalsAgainstAverage,s:{W:p.wins,GA:p.goalsAgainst,SV:p.saves,SHO:p.shutouts}}))});
+ return{SK,GL};
+}
 async function load0(){
  if(D)return D;
- const b='https://api.nhle.com/stats/rest/en/',q='?limit=-1&cayenneExp='+SE;
- const [sk,rt,gl,st,w0,w1]=await Promise.all([J(b+'skater/summary'+q),J(b+'skater/realtime'+q),J(b+'goalie/summary'+q),J('https://api-web.nhle.com/v1/standings/now'),J('https://api-web.nhle.com/v1/schedule/'+mon(0)),J('https://api-web.nhle.com/v1/schedule/'+mon(7))]);
- const rr={};rt.data.forEach(p=>rr[p.playerId]=p);
- D={sk:sk.data.map(p=>{const r=rr[p.playerId]||{};return{n:p.skaterFullName,pos:pos(p.positionCode),t:last(p.teamAbbrevs),gp:p.gamesPlayed,s:{G:p.goals,A:p.assists,PPP:p.ppPoints,SHP:p.shPoints,SOG:p.shots,HIT:r.hits||0,BLK:r.blockedShots||0}}}),
- gl:gl.data.map(p=>({n:p.goalieFullName,pos:'G',t:last(p.teamAbbrevs),gp:p.gamesStarted||p.gamesPlayed,sv:p.savePct,gaa:p.goalsAgainstAverage,s:{W:p.wins,GA:p.goalsAgainst,SV:p.saves,SHO:p.shutouts}})),
- tgp:Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.gamesPlayed])),off:Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.goalFor/Math.max(1,x.gamesPlayed)])),sch:[sch(w0),sch(w1)]};
+ const b='https://api.nhle.com/stats/rest/en/',q='?limit=-1&cayenneExp='+SE,A='https://api-web.nhle.com/v1/',ok=p=>p.catch(()=>null);
+ const [sk,rt,gl,st,w0,w1]=await Promise.all([ok(J(b+'skater/summary'+q)),ok(J(b+'skater/realtime'+q)),ok(J(b+'goalie/summary'+q)),ok(J(A+'standings/now')),ok(J(A+'schedule/'+mon(0))),ok(J(A+'schedule/'+mon(7)))]);
+ let SK,GL;
+ if(sk&&gl){const rr={};if(rt)rt.data.forEach(p=>rr[p.playerId]=p);
+  SK=sk.data.map(p=>{const r=rr[p.playerId]||{};return{n:p.skaterFullName,pos:pos(p.positionCode),t:last(p.teamAbbrevs),gp:p.gamesPlayed,s:{G:p.goals,A:p.assists,PPP:p.ppPoints,SHP:p.shPoints,SOG:p.shots,HIT:r.hits||0,BLK:r.blockedShots||0}}});
+  GL=gl.data.map(p=>({n:p.goalieFullName,pos:'G',t:last(p.teamAbbrevs),gp:p.gamesStarted||p.gamesPlayed,sv:p.savePct,gaa:p.goalsAgainstAverage,s:{W:p.wins,GA:p.goalsAgainst,SV:p.saves,SHO:p.shutouts}}))}
+ else if(st){const c=await viaClub(st);SK=c.SK;GL=c.GL}
+ else throw new Error('NHL data unreachable (stats '+(sk&&gl?'ok':'failed')+', standings '+(st?'ok':'failed')+', schedule '+(w0?'ok':'failed')+')');
+ if(!w0)throw new Error('NHL schedule unreachable (stats ok, schedule failed)');
+ D={sk:SK,gl:GL,tgp:st?Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.gamesPlayed])):{},off:st?Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.goalFor/Math.max(1,x.gamesPlayed)])):{},sch:[sch(w0),w1?sch(w1):{}]};
  const s=document.querySelector('.status');if(s)s.textContent='LIVE NHL DATA';
  return D;
 }
 const gms=(t,w)=>((D.sch[w]||{})[t]||[]).filter(g=>w||g.date>=today);
 const ppg=p=>p.gp?Object.entries(p.s).reduce((a,[k,v])=>a+(v||0)*(league.scoring[k]||0),0)/p.gp:0;
 const proj=(p,w)=>ppg(p)*gms(p.t,w).length*(p.pos==='G'?Math.min(1,p.gp/Math.max(1,D.tgp[p.t]||p.gp)):1);
-const pool=l=>{const own=new Set(roster.map(p=>N(p.name))),av=S.avail.length?new Set(S.avail.map(N)):null;return l.filter(p=>p.gp>=3&&!own.has(N(p.n))&&(!av||av.has(N(p.n))))};
-const me=r=>{const c=[...D.sk,...D.gl].filter(p=>N(p.n)===N(r.name));return c.find(p=>pg(p.pos)===pg(r.pos))||c[0]};
+const pool=l=>{const own=new Set(roster.map(p=>kk(p.name))),av=S.avail.length?new Set(S.avail.map(kk)):null;return l.filter(p=>p.gp>=3&&!own.has(kk(p.n))&&(!av||av.has(kk(p.n))))};
+const me=r=>{const c=cand(r.name),t=(r.team||'').toUpperCase();return c.find(p=>pg(p.pos)===pg(r.pos)&&p.t===t)||c.find(p=>pg(p.pos)===pg(r.pos))||c.find(p=>p.t===t)||c[0]};
+const kk=n=>{const a=N(n).replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim().split(' ');return a[0][0]+' '+a.slice(1).join(' ')};
 const wrap=h=>`<div style="overflow:auto">${h}</div>`;
 const tbl=(h,rows)=>wrap(`<table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
 const err=e=>`<div class="callout">Couldn't load NHL data right now (${esc(e.message)}). Check your connection and reopen this tab.</div>`;
@@ -197,13 +208,13 @@ const share=p=>Math.min(1,p.gp/Math.max(1,D.tgp[p.t]||p.gp));
 const lineup=pl=>{const sl=league.slots,pk=(g,n)=>pl.filter(x=>x.p.pos===g).sort((a,b)=>b.v-a.v).slice(0,n);return[...pk('C',sl.C),...pk('W',sl.W),...pk('D',sl.D),...pk('G',sl.G)]};
 const wrapP=p=>({p,v:proj(p,0),g:gms(p.t,0).length});
 R.matchup=async()=>{
- await load();const m=JSON.parse(K.getItem('ihq_mu')||'{}'),box='width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit';
+ let ne=null;try{await load()}catch(e){ne=e}const m=JSON.parse(K.getItem('ihq_mu')||'{}'),box='width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit';
  const up=(k,t,h)=>`<div class="card span-6"><h3>${t}</h3><p class="small">${h}</p><input type="file" accept="image/*" multiple onchange="IHQ.up('${k}',this)"><div id="mu${k}Msg" class="small" style="margin:8px 0"></div><textarea id="mu${k==='Opp'?'Txt':k}" rows="5" style="${box}" placeholder="Players show up here after you upload. You can also type names.">${esc(k==='My'?roster.map(r=>r.name).join(', '):m.txt||'')}</textarea></div>`;
- $('matchup').innerHTML=`<h2>Matchup</h2><p class="sub">Upload a screenshot of your team and one of your opponent's team (the Yahoo matchup page works too). Your league scoring is already loaded. You'll get a win chance and who to pick up.</p>
+ $('matchup').innerHTML=`<h2>Matchup</h2><p class="sub">Upload a screenshot of your team and one of your opponent's team (the Yahoo matchup page works too). Your league scoring is already loaded. You'll get a win chance and who to pick up.</p>${ne?err(ne):''}
  <div class="grid">${up('My','1. My team','Screenshot of your roster.')}${up('Opp','2. Opponent team','Screenshot of their roster or the matchup page.')}
  <div class="card span-12"><h3>3. This week's score</h3><div class="formgrid"><div class="field"><label>My score so far</label><input id="muMe" type="number" step=".01" value="${m.ms??''}"></div><div class="field"><label>Opponent score so far</label><input id="muOpp" type="number" step=".01" value="${m.os??''}"></div></div>
  <input id="muG" type="hidden" value="${m.gs??0}"><div class="field"><label>Goalie starts my team has had so far this week</label><input id="muG2" type="number" min="0" value="${m.gs??0}" onchange="$('muG').value=this.value"></div><button class="btn" onclick="IHQ.mu()">Compare and recommend</button></div></div><div id="muOut" style="margin-top:14px"></div>`;
- if(m.ms!=null)IHQ.mu();
+ if(m.ms!=null&&!ne)IHQ.mu();
 };
 const mkWorker=async Tz=>{const L=['https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int','https://tessdata.projectnaptha.com/4.0.0'];let e;for(const langPath of L){try{return await Tz.createWorker('eng',1,{langPath})}catch(x){e=x}}throw new Error('Text reader could not start ('+((e&&e.message)||e)+'). Check your connection and try again.')};
 const nhl=()=>load().catch(e=>{throw new Error("Couldn't load NHL player data ("+e.message+"). Check your connection and try again.")});
@@ -211,20 +222,21 @@ let STG='';
 const rdText=async(fs,o)=>{STG='loading the text reader';const Tz=await ocr();STG='starting the reader (downloading language data)';const wk=await mkWorker(Tz);let t='';for(let i=0;i<fs.length;i++){STG='reading screenshot '+(i+1);o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;t+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}await wk.terminate();return t};
 IHQ.up=async(k,inp)=>{
  const fs=[...inp.files].filter(f=>f.type.startsWith('image/')),o=$('mu'+k+'Msg');if(!fs.length)return;
- try{o.textContent='Loading free text reader…';const text=await rdText(fs,o);STG='loading NHL player data';o.textContent='Matching players…';await nhl();STG='matching players';let m=matchP(text);
-  if(k==='Opp'){const mine=new Set(roster.map(r=>C(r.name)));m=m.filter(p=>!mine.has(C(p.n)));const sc=(text.match(/\b\d{1,3}\.\d{2}\b/g)||[]);if(sc.length>=2){$('muMe').value=sc[0];$('muOpp').value=sc[1]}}
-  $(k==='Opp'?'muTxt':'muMy').value=m.map(p=>p.n).join(', ');o.textContent=m.length?`Found ${m.length} players. Fix any names below if needed.`:"Couldn't read any players. Try a clearer, zoomed-in screenshot, or type the names.";
+ try{o.textContent='Loading free text reader…';const text=await rdText(fs,o);STG='matching players';o.textContent='Matching players…';const g=await getPlayers(text);let m=g.m;
+  if(k==='Opp'){const mine=new Set(roster.map(r=>kk(r.name)));m=m.filter(p=>!mine.has(kk(p.n)));const sc=(text.match(/\b\d{1,3}\.\d{2}\b/g)||[]);if(sc.length>=2){$('muMe').value=sc[0];$('muOpp').value=sc[1]}}
+  if(k==='My'&&m.length)applyList('roster',m);$(k==='Opp'?'muTxt':'muMy').value=m.map(p=>p.n).join(', ');o.textContent=m.length?`Found ${m.length} players. Fix any names below if needed.${g.note?' '+g.note:''}`:"Couldn't read any players. Try a clearer, zoomed-in screenshot, or type the names.";
   if(m.length&&$('muMy').value.trim()&&$('muTxt').value.trim())IHQ.mu();
  }catch(e){o.textContent='Problem'+(STG?' while '+STG:'')+': '+((e&&e.message)||e)}
 };
 IHQ.mu=()=>{
+ if(!D){$('muOut').innerHTML='<div class="callout">Loading NHL stats…</div>';load().then(IHQ.mu).catch(e=>$('muOut').innerHTML=err(e));return}
  const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG').value||0,txt=$('muTxt').value,my=$('muMy').value;
  const nm=a=>a.map(x=>C(x)).sort().join('|');
  if(my.trim()){const m0=my.split(/[\n,]+/).map(findP).filter(Boolean);if(m0.length&&nm(m0.map(p=>p.n))!==nm(roster.map(r=>(me(r)||{n:r.name}).n)))applyList('roster',m0)}
  K.setItem('ihq_mu',JSON.stringify({ms,os,gs,txt}));
  const all=[...D.sk,...D.gl],left=Math.max(0,league.addLimit-league.addsUsed);
  const fp=n=>{const t=N(n);let c=all.filter(p=>N(p.n)===t);if(!c.length)c=all.filter(p=>N(p.n).endsWith(' '+t));return c.sort((a,b)=>b.gp-a.gp)[0]};
- const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(wrapP),opn=txt.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean).map(fp).filter(Boolean).map(wrapP);
+ const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(wrapP),opn=txt.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean).map(findP).filter(Boolean).map(wrapP);
  const ml=lineup(mine),ol=lineup(opn),sum=l=>l.reduce((a,x)=>a+x.v,0),mp=sum(ml),op=opn.length?sum(ol):mp*.95;
  const diff=ms+mp-(os+op),sd=Math.max(10,.22*Math.sqrt(mp*mp+op*op)),wp=Math.round(50*(1+erf(diff/sd/Math.SQRT2)));
  const st=wp>=65?'ahead':wp<=35?'behind':'close';
@@ -273,7 +285,24 @@ const KEYS={G:/goals(?! against)/,A:/assists/,PPP:/power ?play points/,SHP:/shor
 const C=s=>N(s).replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
 const lev=(a,b)=>{if(Math.abs(a.length-b.length)>1)return 2;let d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const t=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=t}}return d[b.length]};
 const prep=f=>new Promise(res=>{const i=new Image();i.onload=()=>{const k=Math.min(2.5,2600/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;const x=c.getContext('2d');x.drawImage(i,0,0,c.width,c.height);const d=x.getImageData(0,0,c.width,c.height),a=d.data;let sum=0;for(let j=0;j<a.length;j+=4){const g=.3*a[j]+.59*a[j+1]+.11*a[j+2];a[j]=a[j+1]=a[j+2]=g;sum+=g}const inv=sum/(a.length/4)<128;for(let j=0;j<a.length;j+=4){let g=inv?255-a[j]:a[j];g=g<110?0:g>170?255:(g-110)*255/60;a[j]=a[j+1]=a[j+2]=g}x.putImageData(d,0,0);c.toBlob(res)};i.src=URL.createObjectURL(f)});
-const findP=n=>{const all=[...D.sk,...D.gl],t=C(n);if(!t)return;let c=all.filter(p=>C(p.n)===t);if(!c.length)c=all.filter(p=>C(p.n).endsWith(' '+t));if(!c.length){const a=t.split(' ');if(a.length>1&&a[0].length===1)c=all.filter(p=>{const b=C(p.n).split(' ');return b[0][0]===a[0]&&b.slice(1).join(' ')===a.slice(1).join(' ')})}return c.sort((a,b)=>b.gp-a.gp)[0]};
+const cand=n=>{const all=[...D.sk,...D.gl],t=C(n);if(!t)return[];let c=all.filter(p=>C(p.n)===t);if(!c.length)c=all.filter(p=>C(p.n).endsWith(' '+t));if(!c.length){const a=t.split(' ');if(a.length>1&&a[0].length===1)c=all.filter(p=>{const b=C(p.n).split(' ');return b[0][0]===a[0]&&b.slice(1).join(' ')===a.slice(1).join(' ')})}return c};
+const findP=n=>cand(n).sort((a,b)=>b.gp-a.gp)[0];
+const TM={LA:'LAK',TB:'TBL',NJ:'NJD',SJ:'SJS',MON:'MTL',WAS:'WSH'};
+function parseYahoo(text){
+ const L=text.split('\n').map(x=>x.trim()).filter(Boolean),out=[],seen=new Set();
+ L.forEach((ln,i)=>{
+  const NM=/(?:^|[^A-Za-z])([A-Z])\.\s?([A-Z][A-Za-z'’-]{2,})/,m=ln.match(NM);if(!m||/^(PPP|SHP|SOG|HIT|BLK|GWG)$/.test(m[2]))return;
+  let pos='',t='';
+  for(let j=i;j<Math.min(L.length,i+4);j++){if(j>i&&NM.test(L[j]))break;const q=L[j].match(/\b([CWDGLR]{1,2}(?:,[CWDGLR]{1,2})*)\s*(?:[^\w\s,]{1,2}|[eo])\s*([A-Z]{2,3})\b/);if(q){pos=q[1][0];t=TM[q[2]]||q[2];break}}
+  const name=m[1]+'. '+m[2][0]+m[2].slice(1).toLowerCase(),k=name+t;if(seen.has(k))return;seen.add(k);
+  out.push({n:name,pos:pos==='L'||pos==='R'?'W':pos,t,ir:/\bIR[-+]\w*/.test(ln),gp:0,s:{}})});
+ return out}
+async function getPlayers(text){
+ let m=parseYahoo(text),note='';
+ try{await nhl();if(m.length<3)m=matchP(text);else m=m.map(e=>{const p=me({name:e.n,pos:e.pos,team:e.t});return p?Object.assign({},p,{ir:e.ir}):e})}
+ catch(x){note='NHL stats could not load right now. Your team is saved, and recommendations will work once the stats load (try the Pickups tab later).'}
+ return{m,note}}
+
 function matchP(text){
  const all=[...D.sk,...D.gl],tx=' '+C(text)+' ',tk=[...new Set(tx.trim().split(' '))].filter(w=>w.length>2),ln={},out=new Map();
  all.forEach(p=>{const a=C(p.n).split(' '),l=a[a.length-1];(ln[l]=ln[l]||[]).push(p)});
@@ -284,7 +313,7 @@ function matchP(text){
 }
 let X=null,LT='roster';
 const applyList=(type,m)=>{
- if(type==='roster'){roster=m.map(p=>({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t}));persist();renderRoster()}
+ if(type==='roster'){roster=m.map(p=>({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t,...(p.ir?{ir:1}:{})}));persist();renderRoster()}
  else if(type==='opp'){const u=JSON.parse(K.getItem('ihq_mu')||'{}');u.txt=m.map(p=>p.n).join(', ');K.setItem('ihq_mu',JSON.stringify(u))}
  else{S.avail=m.map(p=>p.n);K.setItem('ihq_avail',JSON.stringify(S.avail))}};
 const show=(type,m,text)=>{
@@ -308,8 +337,7 @@ $('readBtn').onclick=async()=>{
    if(n){Object.assign(league.scoring,f);persist();buildFields();loadLeague()}
    o.innerHTML=n?`<div class="callout">Applied ${n} scoring values: ${Object.entries(f).map(([k,v])=>`${k} ${v}`).join(', ')}. Please double-check them in League Setup.</div>`:'<div class="callout">Couldn\'t find scoring numbers. Try a clearer screenshot of the scoring page, or enter them in League Setup.</div>';
    return}
-  STG='loading NHL player data';o.textContent='Matching players…';await nhl();STG='matching players';
-  const m=matchP(text);applyList(type,m);show(type,m,text);
+  STG='matching players';o.textContent='Matching players…';const g=await getPlayers(text);applyList(type,g.m);show(type,g.m,text);if(g.note)o.insertAdjacentHTML('afterbegin',`<div class="callout">${g.note}</div>`);
  }catch(e){o.innerHTML=`<div class="callout">Problem${STG?' while '+STG:''}: ${esc((e&&e.message)||String(e))}</div>`}
 };
 })();
