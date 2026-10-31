@@ -67,7 +67,7 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="card span-7"><h3>Quick scoring calculator</h3><p class="small">Estimate fantasy points from a projected stat line.</p><div class="formgrid" id="calcInputs"></div><button class="btn" onclick="calculatePoints()">Calculate points</button><div id="calcResult" style="margin-top:14px"></div></div></div>
 </section>
 </main>
-<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · Not affiliated with Yahoo or the NHL</div>
+<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v7 · Not affiliated with Yahoo or the NHL</div>
 </div>
 <script>
 const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.5,SHO:3};
@@ -200,14 +200,15 @@ R.matchup=async()=>{
 };
 const mkWorker=async Tz=>{const L=['https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int','https://tessdata.projectnaptha.com/4.0.0'];let e;for(const langPath of L){try{return await Tz.createWorker('eng',1,{langPath})}catch(x){e=x}}throw new Error('Text reader could not start ('+((e&&e.message)||e)+'). Check your connection and try again.')};
 const nhl=()=>load().catch(e=>{throw new Error("Couldn't load NHL player data ("+e.message+"). Check your connection and try again.")});
-const rdText=async(fs,o)=>{const Tz=await ocr(),wk=await mkWorker(Tz);let t='';for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;t+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}await wk.terminate();return t};
+let STG='';
+const rdText=async(fs,o)=>{STG='loading the text reader';const Tz=await ocr();STG='starting the reader (downloading language data)';const wk=await mkWorker(Tz);let t='';for(let i=0;i<fs.length;i++){STG='reading screenshot '+(i+1);o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;t+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}await wk.terminate();return t};
 IHQ.up=async(k,inp)=>{
  const fs=[...inp.files].filter(f=>f.type.startsWith('image/')),o=$('mu'+k+'Msg');if(!fs.length)return;
- try{o.textContent='Loading free text reader…';const text=await rdText(fs,o);o.textContent='Matching players…';await nhl();let m=matchP(text);
+ try{o.textContent='Loading free text reader…';const text=await rdText(fs,o);STG='loading NHL player data';o.textContent='Matching players…';await nhl();STG='matching players';let m=matchP(text);
   if(k==='Opp'){const mine=new Set(roster.map(r=>C(r.name)));m=m.filter(p=>!mine.has(C(p.n)));const sc=(text.match(/\b\d{1,3}\.\d{2}\b/g)||[]);if(sc.length>=2){$('muMe').value=sc[0];$('muOpp').value=sc[1]}}
   $(k==='Opp'?'muTxt':'muMy').value=m.map(p=>p.n).join(', ');o.textContent=m.length?`Found ${m.length} players. Fix any names below if needed.`:"Couldn't read any players. Try a clearer, zoomed-in screenshot, or type the names.";
   if(m.length&&$('muMy').value.trim()&&$('muTxt').value.trim())IHQ.mu();
- }catch(e){o.textContent='Problem: '+e.message}
+ }catch(e){o.textContent='Problem'+(STG?' while '+STG:'')+': '+((e&&e.message)||e)}
 };
 IHQ.mu=()=>{
  const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG').value||0,txt=$('muTxt').value,my=$('muMy').value;
@@ -286,13 +287,13 @@ const show=(type,m,text)=>{
  <div class="btnrow"><button class="btn" onclick="IHQ.fix()">Update</button>${type==='roster'?'<button class="btn secondary" onclick="showTab(\'team\')">View my team</button>':''}${type==='opp'?'<button class="btn secondary" onclick="showTab(\'matchup\')">Open Matchup</button>':''}</div>
  <details class="small" style="margin-top:10px"><summary>What the reader saw</summary><pre style="white-space:pre-wrap">${esc(text.slice(0,600))}</pre></details>`};
 IHQ.fix=()=>{const m=$('fixTxt').value.split(/[\n,]+/).map(findP).filter(Boolean);applyList(LT,m);show(LT,m,'(edited by you)')};
+imp.insertAdjacentHTML('beforeend',`<details style="margin-top:14px"><summary class="small">Reader not working? Type your players instead</summary><textarea id="typeTxt" rows="4" placeholder="MacKinnon, Aho, Stone…" style="width:100%;margin-top:8px;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit"></textarea><div class="btnrow"><button class="btn secondary" onclick="IHQ.typed()">Use these players</button></div></details>`);
+IHQ.typed=async()=>{try{STG='loading NHL player data';await nhl();const m=$('typeTxt').value.split(/[\n,]+/).map(findP).filter(Boolean);LT=$('shotType').value;applyList(LT,m);show(LT,m,'(typed)')}catch(e){$('readOut').innerHTML=`<div class="callout">Problem while ${STG}: ${esc((e&&e.message)||String(e))}</div>`}};
 $('readBtn').onclick=async()=>{
  const o=$('readOut'),fs=[...$('screenshots').files].filter(f=>f.type.startsWith('image/')),type=LT=$('shotType').value;
  if(!fs.length)return o.innerHTML='<div class="callout">Choose at least one screenshot first.</div>';
  try{
-  o.textContent='Loading free text reader…';const Tz=await ocr(),wk=await mkWorker(Tz);let text='';
-  for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;text+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}
-  await wk.terminate();
+  o.textContent='Loading free text reader…';const text=await rdText(fs,o);
   if(type==='league'){
    const t=text.toLowerCase().replace(/[−–—]/g,'-'),f={};
    Object.entries(KEYS).forEach(([k,r])=>{const m=t.match(new RegExp(r.source+'[^\\d\\-\\n]{0,18}(-?\\d+(?:\\.\\d+)?)'));if(m)f[k]=+m[1]});
@@ -300,9 +301,9 @@ $('readBtn').onclick=async()=>{
    if(n){Object.assign(league.scoring,f);persist();buildFields();loadLeague()}
    o.innerHTML=n?`<div class="callout">Applied ${n} scoring values: ${Object.entries(f).map(([k,v])=>`${k} ${v}`).join(', ')}. Please double-check them in League Setup.</div>`:'<div class="callout">Couldn\'t find scoring numbers. Try a clearer screenshot of the scoring page, or enter them in League Setup.</div>';
    return}
-  o.textContent='Matching players…';await nhl();
+  STG='loading NHL player data';o.textContent='Matching players…';await nhl();STG='matching players';
   const m=matchP(text);applyList(type,m);show(type,m,text);
- }catch(e){o.innerHTML=`<div class="callout">Problem: ${esc(e.message)}</div>`}
+ }catch(e){o.innerHTML=`<div class="callout">Problem${STG?' while '+STG:''}: ${esc((e&&e.message)||String(e))}</div>`}
 };
 })();
 
