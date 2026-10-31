@@ -248,38 +248,47 @@ imp.insertAdjacentHTML('beforeend',`<div class="field" style="margin-top:16px"><
 let T=null;
 const ocr=()=>T||(T=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js';s.onload=()=>ok(window.Tesseract);s.onerror=()=>{T=null;no(new Error('Could not load the free text reader. Check your connection.'))};document.head.appendChild(s)}));
 const KEYS={G:/goals(?! against)/,A:/assists/,PPP:/power ?play points/,SHP:/short ?handed points/,SOG:/shots on goal/,HIT:/hits/,BLK:/blocks?/,W:/wins/,GA:/goals against(?! average)/,SV:/saves(?! percentage)/,SHO:/shutouts/};
-let X=null;
+const C=s=>N(s).replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+const lev=(a,b)=>{if(Math.abs(a.length-b.length)>1)return 2;let d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const t=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=t}}return d[b.length]};
+const prep=f=>new Promise(res=>{const i=new Image();i.onload=()=>{const k=Math.min(2.5,2600/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;const x=c.getContext('2d');x.drawImage(i,0,0,c.width,c.height);const d=x.getImageData(0,0,c.width,c.height),a=d.data;let sum=0;for(let j=0;j<a.length;j+=4){const g=.3*a[j]+.59*a[j+1]+.11*a[j+2];a[j]=a[j+1]=a[j+2]=g;sum+=g}const inv=sum/(a.length/4)<128;for(let j=0;j<a.length;j+=4){let g=inv?255-a[j]:a[j];g=g<110?0:g>170?255:(g-110)*255/60;a[j]=a[j+1]=a[j+2]=g}x.putImageData(d,0,0);c.toBlob(res)};i.src=URL.createObjectURL(f)});
+const findP=n=>{const all=[...D.sk,...D.gl],t=C(n);if(!t)return;let c=all.filter(p=>C(p.n)===t);if(!c.length)c=all.filter(p=>C(p.n).endsWith(' '+t));if(!c.length){const a=t.split(' ');if(a.length>1&&a[0].length===1)c=all.filter(p=>{const b=C(p.n).split(' ');return b[0][0]===a[0]&&b.slice(1).join(' ')===a.slice(1).join(' ')})}return c.sort((a,b)=>b.gp-a.gp)[0]};
+function matchP(text){
+ const all=[...D.sk,...D.gl],tx=' '+C(text)+' ',tk=[...new Set(tx.trim().split(' '))].filter(w=>w.length>2),ln={},out=new Map();
+ all.forEach(p=>{const a=C(p.n).split(' '),l=a[a.length-1];(ln[l]=ln[l]||[]).push(p)});
+ all.forEach(p=>{const n=C(p.n),a=n.split(' '),l=a[a.length-1];let ok=tx.includes(' '+n+' ')||tx.includes(' '+a[0][0]+' '+a.slice(1).join(' ')+' ');
+  if(!ok&&l.length>=5&&ln[l].length===1)ok=tk.includes(l)||(l.length>=7&&tk.some(w=>lev(w,l)<=1));
+  if(ok){if(!out.has(n))out.set(n,[]);out.get(n).push(p)}});
+ return[...out.values()].map(l=>l.length>1?(l.find(p=>tk.includes(p.t.toLowerCase()))||l.sort((a,b)=>b.gp-a.gp)[0]):l[0]);
+}
+let X=null,LT='roster';
+const applyList=(type,m)=>{
+ if(type==='roster'){roster=m.map(p=>({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t}));persist();renderRoster()}
+ else if(type==='opp'){const u=JSON.parse(K.getItem('ihq_mu')||'{}');u.txt=m.map(p=>p.n).join(', ');K.setItem('ihq_mu',JSON.stringify(u))}
+ else{S.avail=m.map(p=>p.n);K.setItem('ihq_avail',JSON.stringify(S.avail))}};
+const show=(type,m,text)=>{
+ const lbl={roster:'your team',opp:"your opponent's team",avail:'your free-agent list'}[type];
+ $('readOut').innerHTML=`<div class="callout">${m.length?`Loaded ${m.length} players as ${lbl}. Pickups, Streaming, Coach and Matchup now use it.`:"Couldn't match any players."} ${m.length&&m.length<8&&type==='roster'?'That looks low. Add any missing players below.':''}</div>
+ <label>Players (fix names, separate with commas, then tap Update)</label><textarea id="fixTxt" rows="4" style="width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit">${esc(m.map(p=>p.n).join(', '))}</textarea>
+ <div class="btnrow"><button class="btn" onclick="IHQ.fix()">Update</button>${type==='roster'?'<button class="btn secondary" onclick="showTab(\'team\')">View my team</button>':''}${type==='opp'?'<button class="btn secondary" onclick="showTab(\'matchup\')">Open Matchup</button>':''}</div>
+ <details class="small" style="margin-top:10px"><summary>What the reader saw</summary><pre style="white-space:pre-wrap">${esc(text.slice(0,600))}</pre></details>`};
+IHQ.fix=()=>{const m=$('fixTxt').value.split(/[\n,]+/).map(findP).filter(Boolean);applyList(LT,m);show(LT,m,'(edited by you)')};
 $('readBtn').onclick=async()=>{
- const o=$('readOut'),fs=[...$('screenshots').files].filter(f=>f.type.startsWith('image/')),type=$('shotType').value;
+ const o=$('readOut'),fs=[...$('screenshots').files].filter(f=>f.type.startsWith('image/')),type=LT=$('shotType').value;
  if(!fs.length)return o.innerHTML='<div class="callout">Choose at least one screenshot first.</div>';
  try{
   o.textContent='Loading free text reader…';const Tz=await ocr(),wk=await Tz.createWorker('eng');let text='';
-  for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;text+='\n'+(await wk.recognize(fs[i])).data.text}
+  for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;text+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}
   await wk.terminate();
   if(type==='league'){
    const t=text.toLowerCase().replace(/[−–—]/g,'-'),f={};
    Object.entries(KEYS).forEach(([k,r])=>{const m=t.match(new RegExp(r.source+'[^\\d\\-\\n]{0,18}(-?\\d+(?:\\.\\d+)?)'));if(m)f[k]=+m[1]});
-   X={type,f};const n=Object.keys(f).length;
-   o.innerHTML=n?`<div class="callout">Found ${n} scoring values: ${Object.entries(f).map(([k,v])=>`${k} ${v}`).join(', ')}. Tap Apply, then double-check them in League Setup.</div><button class="btn" onclick="IHQ.apply()">Apply</button>`:'<div class="callout">Couldn\'t find scoring numbers. Try a clearer, zoomed-in screenshot of the scoring page, or enter them in League Setup.</div>';
+   const n=Object.keys(f).length;
+   if(n){Object.assign(league.scoring,f);persist();buildFields();loadLeague()}
+   o.innerHTML=n?`<div class="callout">Applied ${n} scoring values: ${Object.entries(f).map(([k,v])=>`${k} ${v}`).join(', ')}. Please double-check them in League Setup.</div>`:'<div class="callout">Couldn\'t find scoring numbers. Try a clearer screenshot of the scoring page, or enter them in League Setup.</div>';
    return}
-  await load();
-  const tx=' '+N(text).replace(/\s+/g,' ')+' ',all=[...D.sk,...D.gl],init={};
-  all.forEach(p=>{const a=N(p.n).split(' ');const k=a[0][0]+' '+a.slice(1).join(' ');(init[k]=init[k]||[]).push(p)});
-  const found=new Map();
-  all.forEach(p=>{if(tx.includes(' '+N(p.n)+' '))(found.get(N(p.n))||found.set(N(p.n),[]).get(N(p.n))).push(p)});
-  Object.entries(init).forEach(([k,l])=>{if(l.length===1&&tx.includes(' '+k+' ')&&!found.has(N(l[0].n)))found.set(N(l[0].n),[l[0]])});
-  const m=[...found.values()].map(l=>l.length>1?(l.find(p=>tx.includes(' '+p.t.toLowerCase()+' '))||l.sort((a,b)=>b.gp-a.gp)[0]):l[0]);
-  X={type,m};
-  o.innerHTML=m.length?`<div class="callout">Found ${m.length} players: ${m.map(p=>esc(p.n)).join(', ')}. Tap Apply to use them as ${type==='roster'?'your roster':type==='opp'?'your opponent\'s roster':'your free-agent list'}.</div><button class="btn" onclick="IHQ.apply()">Apply</button>`:'<div class="callout">Couldn\'t match any players. Try a clearer screenshot that shows full player names.</div>';
+  o.textContent='Matching players…';await load();
+  const m=matchP(text);applyList(type,m);show(type,m,text);
  }catch(e){o.innerHTML=`<div class="callout">Problem: ${esc(e.message)}</div>`}
-};
-IHQ.apply=()=>{
- const o=$('readOut');
- if(X.type==='league'){Object.assign(league.scoring,X.f);persist();buildFields();loadLeague();o.innerHTML='<div class="callout">Applied ✓ Please check the numbers in League Setup.</div>';return}
- if(X.type==='roster'){roster=X.m.map(p=>({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t}));persist();renderRoster()}
- else if(X.type==='opp'){const u=JSON.parse(K.getItem('ihq_mu')||'{}');u.txt=X.m.map(p=>p.n).join(', ');K.setItem('ihq_mu',JSON.stringify(u));o.innerHTML='<div class="callout">Applied ✓ Open Matchup to compare.</div>';return}
- else{S.avail=X.m.map(p=>p.n);K.setItem('ihq_avail',JSON.stringify(S.avail))}
- o.innerHTML='<div class="callout">Applied ✓ Open Pickups to see your best adds.</div>';
 };
 })();
 
