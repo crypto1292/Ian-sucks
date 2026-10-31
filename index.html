@@ -41,7 +41,7 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="card span-3"><div class="metric" id="addsLeft">—</div><div class="metric-label">Weekly adds remaining</div></div>
 <div class="card span-3"><div class="metric" id="goalieMin">—</div><div class="metric-label">Goalie minimum / week</div></div>
 <div class="card span-7"><h3>Decision centre</h3><div class="callout">Recommendations should respect your exact Yahoo scoring, roster positions, weekly acquisition limit and goalie minimum.</div><div id="decisionText" class="muted">Set up your league and add your roster to get started.</div></div>
-<div class="card span-5"><h3>Quick setup</h3><div class="recommend"><span>1. Upload screenshots or enter league rules</span><span class="pill">Setup</span></div><div class="recommend"><span>2. Add your current roster</span><span class="pill">Team</span></div><div class="recommend"><span>3. Check Pickups, Streaming and Schedule</span><span class="pill">Tools</span></div><div class="btnrow"><button class="btn" onclick="showTab('import')">Upload screenshots</button><button class="btn secondary" onclick="showTab('pickups')">Best pickups</button></div></div>
+<div class="card span-5"><h3>Quick setup</h3><div class="recommend"><span>1. Upload your team and your opponent's team</span><span class="pill">Setup</span></div><div class="recommend"><span>2. Add your current roster</span><span class="pill">Team</span></div><div class="recommend"><span>3. Check Pickups, Streaming and Schedule</span><span class="pill">Tools</span></div><div class="btnrow"><button class="btn" onclick="showTab('matchup')">Upload my team</button><button class="btn secondary" onclick="showTab('pickups')">Best pickups</button></div></div>
 </div>
 </section>
 <section id="team" class="page hidden">
@@ -190,16 +190,27 @@ const share=p=>Math.min(1,p.gp/Math.max(1,D.tgp[p.t]||p.gp));
 const lineup=pl=>{const sl=league.slots,pk=(g,n)=>pl.filter(x=>x.p.pos===g).sort((a,b)=>b.v-a.v).slice(0,n);return[...pk('C',sl.C),...pk('W',sl.W),...pk('D',sl.D),...pk('G',sl.G)]};
 const wrapP=p=>({p,v:proj(p,0),g:gms(p.t,0).length});
 R.matchup=async()=>{
- await load();const m=JSON.parse(K.getItem('ihq_mu')||'{}');
- $('matchup').innerHTML=`<h2>Matchup</h2><p class="sub">Enter this week's score and who you're playing. You'll get a win chance and exactly who to stream, using your league scoring.</p>
- <div class="grid"><div class="card span-5"><h3>This week</h3><div class="formgrid"><div class="field"><label>My score so far</label><input id="muMe" type="number" step=".01" value="${m.ms??''}"></div><div class="field"><label>Opponent score so far</label><input id="muOpp" type="number" step=".01" value="${m.os??''}"></div></div>
- <div class="field"><label>Goalie starts my team has had so far this week</label><input id="muG" type="number" min="0" value="${m.gs??0}"></div>
- <div class="field"><label>Opponent's players (names, one per line or separated by commas). You can also upload a screenshot of their roster in Import Screenshots.</label><textarea id="muTxt" rows="6" style="width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit">${esc(m.txt||'')}</textarea></div>
- <button class="btn" onclick="IHQ.mu()">Analyze my matchup</button></div><div class="span-7" id="muOut"><div class="empty">Fill in the scores and tap Analyze.</div></div></div>`;
+ await load();const m=JSON.parse(K.getItem('ihq_mu')||'{}'),box='width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit';
+ const up=(k,t,h)=>`<div class="card span-6"><h3>${t}</h3><p class="small">${h}</p><input type="file" accept="image/*" multiple onchange="IHQ.up('${k}',this)"><div id="mu${k}Msg" class="small" style="margin:8px 0"></div><textarea id="mu${k==='Opp'?'Txt':k}" rows="5" style="${box}" placeholder="Players show up here after you upload. You can also type names.">${esc(k==='My'?roster.map(r=>r.name).join(', '):m.txt||'')}</textarea></div>`;
+ $('matchup').innerHTML=`<h2>Matchup</h2><p class="sub">Upload a screenshot of your team and one of your opponent's team (the Yahoo matchup page works too). Your league scoring is already loaded. You'll get a win chance and who to pick up.</p>
+ <div class="grid">${up('My','1. My team','Screenshot of your roster.')}${up('Opp','2. Opponent team','Screenshot of their roster or the matchup page.')}
+ <div class="card span-12"><h3>3. This week's score</h3><div class="formgrid"><div class="field"><label>My score so far</label><input id="muMe" type="number" step=".01" value="${m.ms??''}"></div><div class="field"><label>Opponent score so far</label><input id="muOpp" type="number" step=".01" value="${m.os??''}"></div></div>
+ <input id="muG" type="hidden" value="${m.gs??0}"><div class="field"><label>Goalie starts my team has had so far this week</label><input id="muG2" type="number" min="0" value="${m.gs??0}" onchange="$('muG').value=this.value"></div><button class="btn" onclick="IHQ.mu()">Compare and recommend</button></div></div><div id="muOut" style="margin-top:14px"></div>`;
  if(m.ms!=null)IHQ.mu();
 };
+const rdText=async(fs,o)=>{const Tz=await ocr(),wk=await Tz.createWorker('eng');let t='';for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;t+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}await wk.terminate();return t};
+IHQ.up=async(k,inp)=>{
+ const fs=[...inp.files].filter(f=>f.type.startsWith('image/')),o=$('mu'+k+'Msg');if(!fs.length)return;
+ try{o.textContent='Loading free text reader…';const text=await rdText(fs,o);o.textContent='Matching players…';await load();let m=matchP(text);
+  if(k==='Opp'){const mine=new Set(roster.map(r=>C(r.name)));m=m.filter(p=>!mine.has(C(p.n)));const sc=(text.match(/\b\d{1,3}\.\d{2}\b/g)||[]);if(sc.length>=2){$('muMe').value=sc[0];$('muOpp').value=sc[1]}}
+  $(k==='Opp'?'muTxt':'muMy').value=m.map(p=>p.n).join(', ');o.textContent=m.length?`Found ${m.length} players. Fix any names below if needed.`:"Couldn't read any players. Try a clearer, zoomed-in screenshot, or type the names.";
+  if(m.length&&$('muMy').value.trim()&&$('muTxt').value.trim())IHQ.mu();
+ }catch(e){o.textContent='Problem: '+e.message}
+};
 IHQ.mu=()=>{
- const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG').value||0,txt=$('muTxt').value;
+ const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG').value||0,txt=$('muTxt').value,my=$('muMy').value;
+ const nm=a=>a.map(x=>C(x)).sort().join('|');
+ if(my.trim()){const m0=my.split(/[\n,]+/).map(findP).filter(Boolean);if(m0.length&&nm(m0.map(p=>p.n))!==nm(roster.map(r=>(me(r)||{n:r.name}).n)))applyList('roster',m0)}
  K.setItem('ihq_mu',JSON.stringify({ms,os,gs,txt}));
  const all=[...D.sk,...D.gl],left=Math.max(0,league.addLimit-league.addsUsed);
  const fp=n=>{const t=N(n);let c=all.filter(p=>N(p.n)===t);if(!c.length)c=all.filter(p=>N(p.n).endsWith(' '+t));return c.sort((a,b)=>b.gp-a.gp)[0]};
@@ -214,7 +225,8 @@ IHQ.mu=()=>{
  const exp=ml.filter(x=>x.p.pos==='G').reduce((a,x)=>a+x.g*share(x.p),0),pace=gs+exp,need=pace<league.goalieMinimum;
  const gc=pool(D.gl).map(p=>({p,g:gms(p.t,0).length,v:proj(p,0)})).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,2);
  const rl=recs.map(([d,a])=>`<div class="recommend"><span><b>Drop ${esc(d.p.n)}, add ${esc(a.p.n)}</b> (${esc(a.p.t)}, ${a.p.pos})<br><span class="small">${d.g?`${d.g} game${d.g>1?'s':''} left, about ${d.v.toFixed(1)} pts`:'no games left'} → ${a.g} games, about ${a.v.toFixed(1)} pts</span></span><span class="pill">+${(a.v-d.v).toFixed(1)}</span></div>`).join('');
- $('muOut').innerHTML=`<div class="card"><div class="grid" style="margin-bottom:12px"><div class="span-4"><div class="metric">${(ms+mp).toFixed(0)}</div><div class="metric-label">You (projected final)</div></div><div class="span-4"><div class="metric">${(os+op).toFixed(0)}</div><div class="metric-label">Opponent${opn.length?'':' (estimate)'}</div></div><div class="span-4"><div class="metric">${wp}%</div><div class="metric-label">Your win chance (rough)</div></div></div><div class="callout">${say}</div>
+ const days=7-((new Date().getDay()+6)%7),fin=days<=2,gap=os+op-ms-mp,extra=(gap>0?`<p>You need about <b>${gap.toFixed(0)}</b> more points than projected to win.</p>`:'')+(fin?`<div class="callout"><b>The week is almost over (${days} day${days>1?'s':''} left).</b> Top players to pick up right now:</div>${cands.slice(0,6).map(x=>`<div class="recommend"><span><b>${esc(x.p.n)}</b> (${esc(x.p.t)}, ${x.p.pos})<br><span class="small">${x.g} game${x.g>1?'s':''} left</span></span><span class="pill">~${x.v.toFixed(1)} pts</span></div>`).join('')}`:'');
+ $('muOut').innerHTML=`<div class="card"><div class="grid" style="margin-bottom:12px"><div class="span-4"><div class="metric">${(ms+mp).toFixed(0)}</div><div class="metric-label">You (projected final)</div></div><div class="span-4"><div class="metric">${(os+op).toFixed(0)}</div><div class="metric-label">Opponent${opn.length?'':' (estimate)'}</div></div><div class="span-4"><div class="metric">${wp}%</div><div class="metric-label">Your win chance (rough)</div></div></div><div class="callout">${say}</div>${extra}
  ${opn.length?'':'<p class="small">Add your opponent\'s players for a more accurate read.</p>'}
  ${tbl(['','You','Opp.'],['C','W','D','G'].map(g=>[g,...grp(g)]))}</div>
  <div class="card" style="margin-top:14px"><h3>Who to stream (${left} add${left===1?'':'s'} left)</h3>${rl||`<div class="empty">${left?'No upgrades worth an add right now.':'No adds left this week.'}</div>`}
