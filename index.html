@@ -198,10 +198,12 @@ R.matchup=async()=>{
  <input id="muG" type="hidden" value="${m.gs??0}"><div class="field"><label>Goalie starts my team has had so far this week</label><input id="muG2" type="number" min="0" value="${m.gs??0}" onchange="$('muG').value=this.value"></div><button class="btn" onclick="IHQ.mu()">Compare and recommend</button></div></div><div id="muOut" style="margin-top:14px"></div>`;
  if(m.ms!=null)IHQ.mu();
 };
-const rdText=async(fs,o)=>{const Tz=await ocr(),wk=await Tz.createWorker('eng');let t='';for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;t+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}await wk.terminate();return t};
+const mkWorker=async Tz=>{const L=['https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int','https://tessdata.projectnaptha.com/4.0.0'];let e;for(const langPath of L){try{return await Tz.createWorker('eng',1,{langPath})}catch(x){e=x}}throw new Error('Text reader could not start ('+((e&&e.message)||e)+'). Check your connection and try again.')};
+const nhl=()=>load().catch(e=>{throw new Error("Couldn't load NHL player data ("+e.message+"). Check your connection and try again.")});
+const rdText=async(fs,o)=>{const Tz=await ocr(),wk=await mkWorker(Tz);let t='';for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;t+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}await wk.terminate();return t};
 IHQ.up=async(k,inp)=>{
  const fs=[...inp.files].filter(f=>f.type.startsWith('image/')),o=$('mu'+k+'Msg');if(!fs.length)return;
- try{o.textContent='Loading free text reader…';const text=await rdText(fs,o);o.textContent='Matching players…';await load();let m=matchP(text);
+ try{o.textContent='Loading free text reader…';const text=await rdText(fs,o);o.textContent='Matching players…';await nhl();let m=matchP(text);
   if(k==='Opp'){const mine=new Set(roster.map(r=>C(r.name)));m=m.filter(p=>!mine.has(C(p.n)));const sc=(text.match(/\b\d{1,3}\.\d{2}\b/g)||[]);if(sc.length>=2){$('muMe').value=sc[0];$('muOpp').value=sc[1]}}
   $(k==='Opp'?'muTxt':'muMy').value=m.map(p=>p.n).join(', ');o.textContent=m.length?`Found ${m.length} players. Fix any names below if needed.`:"Couldn't read any players. Try a clearer, zoomed-in screenshot, or type the names.";
   if(m.length&&$('muMy').value.trim()&&$('muTxt').value.trim())IHQ.mu();
@@ -288,7 +290,7 @@ $('readBtn').onclick=async()=>{
  const o=$('readOut'),fs=[...$('screenshots').files].filter(f=>f.type.startsWith('image/')),type=LT=$('shotType').value;
  if(!fs.length)return o.innerHTML='<div class="callout">Choose at least one screenshot first.</div>';
  try{
-  o.textContent='Loading free text reader…';const Tz=await ocr(),wk=await Tz.createWorker('eng');let text='';
+  o.textContent='Loading free text reader…';const Tz=await ocr(),wk=await mkWorker(Tz);let text='';
   for(let i=0;i<fs.length;i++){o.textContent=`Reading screenshot ${i+1} of ${fs.length}…`;text+='\n'+(await wk.recognize(await prep(fs[i]))).data.text}
   await wk.terminate();
   if(type==='league'){
@@ -298,7 +300,7 @@ $('readBtn').onclick=async()=>{
    if(n){Object.assign(league.scoring,f);persist();buildFields();loadLeague()}
    o.innerHTML=n?`<div class="callout">Applied ${n} scoring values: ${Object.entries(f).map(([k,v])=>`${k} ${v}`).join(', ')}. Please double-check them in League Setup.</div>`:'<div class="callout">Couldn\'t find scoring numbers. Try a clearer screenshot of the scoring page, or enter them in League Setup.</div>';
    return}
-  o.textContent='Matching players…';await load();
+  o.textContent='Matching players…';await nhl();
   const m=matchP(text);applyList(type,m);show(type,m,text);
  }catch(e){o.innerHTML=`<div class="callout">Problem: ${esc(e.message)}</div>`}
 };
