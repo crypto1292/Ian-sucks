@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#071326">
+<title>Ian sucks — Fantasy Hockey IQ</title>
+<style>
+:root{--bg:#071326;--panel:#101f35;--panel2:#162943;--line:#29415e;--text:#f3f7fc;--muted:#a4b5ca;--ice:#79d8ff;--blue:#287bd2;--green:#70e0b5;--gold:#ffd071;--red:#ff8792}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#1d4770 0,transparent 48%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}.app{max-width:1240px;margin:auto;padding:18px 18px 55px}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0 18px;border-bottom:1px solid #233b57}.brand{display:flex;align-items:center;gap:11px}.brand img{width:54px;height:54px;object-fit:cover;object-position:50% 18%;border-radius:13px;border:1px solid #6ea9df;box-shadow:0 5px 22px #0007}.brand h1{font-size:20px;line-height:1.1;margin:0;letter-spacing:-.5px}.brand p{font-size:11px;color:var(--muted);margin:4px 0 0}.status{font-size:11px;color:#c6d7e9;border:1px solid var(--line);border-radius:99px;padding:7px 11px;background:#0c1b2d}
+nav{display:flex;gap:5px;overflow:auto;padding:12px 0 15px;border-bottom:1px solid #233b57;margin-bottom:22px}nav button{white-space:nowrap;border:0;background:transparent;color:var(--muted);padding:9px 13px;border-radius:9px}nav button.active{background:#1a3554;color:var(--ice);box-shadow:inset 0 -2px var(--ice)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.9fr);align-items:center;gap:22px;padding:19px;background:linear-gradient(120deg,#122844,#0b192c);border:1px solid #355579;border-radius:20px;margin-bottom:20px;overflow:hidden}.hero-copy h2{font-size:clamp(25px,4vw,42px);line-height:1.08;letter-spacing:-1.3px;margin:0 0 10px}.hero-copy p{color:#b6c9dd;max-width:480px;margin:0}.hero-art{text-align:center}.hero-art img{display:block;width:min(100%,410px);max-height:380px;object-fit:contain;margin:auto;filter:drop-shadow(0 12px 24px #0008)}
+h2{font-size:25px;letter-spacing:-.6px;margin:0 0 5px}h3{font-size:15px;margin:0 0 13px}.sub{color:var(--muted);margin:0 0 20px}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:linear-gradient(155deg,#14263e,#0e1b2d);border:1px solid var(--line);border-radius:15px;padding:17px;min-width:0}.span-3{grid-column:span 3}.span-4{grid-column:span 4}.span-5{grid-column:span 5}.span-6{grid-column:span 6}.span-7{grid-column:span 7}.span-8{grid-column:span 8}.span-12{grid-column:span 12}
+.metric{font-size:29px;font-weight:800;letter-spacing:-1px}.metric-label,.small{font-size:12px;color:var(--muted)}.tag{display:inline-block;padding:4px 8px;border-radius:99px;background:#183d53;color:var(--ice);font-size:11px;font-weight:700}.btn{border:0;background:linear-gradient(135deg,#91e6ff,#55b9ef);color:#06182a;padding:10px 14px;border-radius:9px;font-weight:800}.btn.secondary{background:#213954;color:var(--text);border:1px solid #3b5776}.btn.danger{background:#512c3b;color:#ffd1d6}.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.callout{padding:12px 14px;border-radius:10px;background:#15314a;border:1px solid #315675;color:#d4efff;font-size:13px;margin-bottom:13px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:9px 7px;border-bottom:1px solid var(--line)}td{padding:10px 7px;border-bottom:1px solid #233850}tr:last-child td{border:0}
+input,select{width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;outline:none}input:focus,select:focus{border-color:var(--ice)}label{display:block;color:var(--muted);font-size:12px;margin:0 0 5px}.field{margin-bottom:12px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.empty{padding:24px;text-align:center;border:1px dashed #405c7b;border-radius:11px;color:var(--muted)}.recommend{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.recommend:last-child{border:0}.pill{font-size:11px;border-radius:99px;padding:4px 8px;background:#173d37;color:var(--green);height:max-content}.hidden{display:none!important}.upload{border:1px dashed #54718f;border-radius:12px;padding:20px;text-align:center;background:#0a192b}.upload input{max-width:320px;margin:12px auto}.preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.preview img{max-width:145px;max-height:170px;object-fit:contain;border-radius:8px;border:1px solid var(--line)}.footer{text-align:center;color:#71869f;font-size:11px;margin-top:24px}
+@media(max-width:760px){.app{padding:12px 11px 40px}.status{display:none}.hero{grid-template-columns:1fr;text-align:center;padding:14px;gap:5px}.hero-copy p{margin:auto}.hero-art img{width:min(84%,330px);max-height:310px}.span-3,.span-4,.span-5,.span-6,.span-7,.span-8{grid-column:span 12}.formgrid{grid-template-columns:1fr}.brand img{width:46px;height:46px}h2{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><img src="mascot-logo.webp" alt="Ian sucks hockey mascot"><div><h1>Ian sucks</h1><p>FANTASY HOCKEY IQ</p></div></div>
+  <div class="status">EARLY BUILD · LOCAL DATA</div>
+</header>
+<nav id="nav">
+<button class="active" data-tab="dashboard">Dashboard</button><button data-tab="team">My Team</button><button data-tab="league">League Setup</button><button data-tab="import">Import Screenshots</button><button data-tab="tools">Player Tools</button>
+</nav>
+<main>
+<section id="dashboard" class="page">
+  <div class="hero">
+    <div class="hero-copy"><span class="tag">YOUR FANTASY HOCKEY HQ</span><h2>Make the smart move.<br>Win your week.</h2><p>League-specific fantasy hockey decisions, built around your scoring, roster, schedule and weekly rules.</p></div>
+    <div class="hero-art"><img src="mascot-logo.webp" alt="Ian sucks illustrated hockey player mascot logo"></div>
+  </div>
+  <h2>Your hockey command centre</h2><p class="sub">Start with your league settings and roster. The tools will use those rules instead of generic rankings.</p>
+  <div class="grid">
+    <div class="card span-3"><div class="metric" id="rosterCount">0</div><div class="metric-label">Players on your roster</div></div>
+    <div class="card span-3"><div class="metric" id="leagueTeams">—</div><div class="metric-label">Teams in your league</div></div>
+    <div class="card span-3"><div class="metric" id="addsLeft">—</div><div class="metric-label">Weekly adds remaining</div></div>
+    <div class="card span-3"><div class="metric" id="goalieMin">—</div><div class="metric-label">Goalie minimum / week</div></div>
+    <div class="card span-7"><h3>Decision centre</h3><div class="callout">Recommendations should respect your exact Yahoo scoring, roster positions, weekly acquisition limit and goalie minimum.</div><div id="decisionText" class="muted">Set up your league and add your roster to get started.</div></div>
+    <div class="card span-5"><h3>Quick setup</h3><div class="recommend"><span>1. Enter league scoring and roster rules</span><span class="pill">Setup</span></div><div class="recommend"><span>2. Add your current roster</span><span class="pill">Team</span></div><div class="recommend"><span>3. Compare free-agent candidates</span><span class="pill">Tools</span></div><div class="btnrow"><button class="btn" onclick="showTab('league')">Set up league</button><button class="btn secondary" onclick="showTab('team')">Add players</button></div></div>
+    <div class="card span-12"><h3>Build roadmap</h3><div class="grid"><div class="span-4"><b>League-first engine</b><p class="small">Scoring, positional eligibility, roster slots, adds and goalie rules.</p></div><div class="span-4"><b>Hockey intelligence</b><p class="small">Next stages: NHL schedule, injuries, line deployment, power-play roles and projections.</p></div><div class="span-4"><b>Yahoo-assisted setup</b><p class="small">Screenshot-assisted entry first; automatic Yahoo connection can come later.</p></div></div></div>
+  </div>
+</section>
+<section id="team" class="page hidden">
+<h2>My Team</h2><p class="sub">Save your roster in this browser and update it whenever your Yahoo team changes.</p>
+<div class="grid"><div class="card span-4"><h3>Add a player</h3><div class="field"><label>Player name</label><input id="playerName" placeholder="e.g. Nathan MacKinnon"></div><div class="formgrid"><div class="field"><label>Position</label><select id="playerPos"><option>C</option><option>LW</option><option>RW</option><option>W</option><option>D</option><option>G</option></select></div><div class="field"><label>NHL team (optional)</label><input id="playerNhlTeam" placeholder="COL"></div></div><button class="btn" onclick="addPlayer()">Add to roster</button></div>
+<div class="card span-8"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h3>Roster</h3><span class="tag" id="rosterTag">0 players</span></div><div id="rosterTable"></div></div></div>
+</section>
+<section id="league" class="page hidden">
+<h2>League Setup</h2><p class="sub">Enter the exact values from your Yahoo league settings.</p>
+<div class="grid">
+<div class="card span-6"><h3>League format</h3><div class="formgrid"><div class="field"><label>Fantasy platform</label><select id="platform"><option>Yahoo Fantasy Hockey</option></select></div><div class="field"><label>League type</label><select id="leagueType"><option>Head-to-Head Points</option><option>Head-to-Head Categories</option><option>Rotisserie</option></select></div><div class="field"><label>Number of teams</label><input id="teams" type="number" min="2" max="32" value="10"></div><div class="field"><label>Weekly add limit</label><input id="addLimit" type="number" min="0" value="4"></div><div class="field"><label>Goalie minimum appearances / week</label><input id="goalieMinimum" type="number" min="0" value="3"></div><div class="field"><label>Acquisitions used this week</label><input id="addsUsed" type="number" min="0" value="0"></div></div></div>
+<div class="card span-6"><h3>Scoring settings</h3><p class="small">Enter the point values shown in Yahoo. Leave unscored stats at 0.</p><div class="formgrid" id="scoringFields"></div></div>
+<div class="card span-12"><h3>Roster positions</h3><p class="small">Enter the number of each roster slot.</p><div class="formgrid" id="slotFields"></div><div class="btnrow"><button class="btn" onclick="saveLeague()">Save league settings</button><span id="saveLeagueMsg" class="small" style="align-self:center"></span></div></div>
+</div>
+</section>
+<section id="import" class="page hidden">
+<h2>Import Screenshots</h2><p class="sub">Preview Yahoo screenshots here while entering the information into your league and roster pages.</p>
+<div class="card"><div class="callout"><b>Note:</b> this first version previews screenshots but does not yet read text from them automatically. We will add recognition in a later stage.</div><div class="upload"><div style="font-size:30px">📷</div><b>Choose Yahoo screenshots</b><p class="small">Roster, league scoring, roster positions or free-agent list.</p><input id="screenshots" type="file" accept="image/*" multiple onchange="previewImages(event)"><div id="imagePreview" class="preview"></div></div><div class="btnrow"><button class="btn secondary" onclick="showTab('team')">Enter roster</button><button class="btn secondary" onclick="showTab('league')">Enter league settings</button></div></div>
+</section>
+<section id="tools" class="page hidden">
+<h2>Player Tools</h2><p class="sub">Compare candidates with your league's scoring. Add projected stats to estimate fantasy value.</p>
+<div class="grid"><div class="card span-5"><h3>Player comparison</h3><div class="field"><label>Candidate A</label><input id="candidateA" placeholder="Player name"></div><div class="field"><label>Candidate B</label><input id="candidateB" placeholder="Player name"></div><p class="small">Enter projected weekly stats for each player.</p><div id="compareInputs"></div><button class="btn" onclick="comparePlayers()">Compare players</button><div id="compareResult" style="margin-top:14px"></div></div>
+<div class="card span-7"><h3>Quick scoring calculator</h3><p class="small">Estimate fantasy points from a projected stat line.</p><div class="formgrid" id="calcInputs"></div><button class="btn" onclick="calculatePoints()">Calculate points</button><div id="calcResult" style="margin-top:14px"></div></div></div>
+</section>
+</main>
+<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · Not affiliated with Yahoo or the NHL</div>
+</div>
+<script>
+const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.25,SHO:0};
+const slotDefaults={C:2,W:4,D:4,G:2,BN:4,IR:2};
+let league={teams:10,addLimit:4,goalieMinimum:3,addsUsed:0,scoring:{...scoringDefaults},slots:{...slotDefaults}};
+let roster=[];
+try{const saved=JSON.parse(localStorage.getItem('ihq_league')||'{}');league={...league,...saved,scoring:{...scoringDefaults,...saved.scoring},slots:{...slotDefaults,...saved.slots}};roster=JSON.parse(localStorage.getItem('ihq_roster')||'[]')}catch(e){}
+const $=id=>document.getElementById(id);
+function persist(){localStorage.setItem('ihq_league',JSON.stringify(league));localStorage.setItem('ihq_roster',JSON.stringify(roster));refresh()}
+function showTab(id){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));$(id).classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='team')renderRoster()}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+function buildFields(){
+$('scoringFields').innerHTML=Object.entries(league.scoring).map(([k,v])=>`<div class="field"><label>${k} points</label><input type="number" step=".01" id="score_${k}" value="${v}"></div>`).join('');
+$('slotFields').innerHTML=Object.entries(league.slots).map(([k,v])=>`<div class="field"><label>${k} slots</label><input type="number" min="0" id="slot_${k}" value="${v}"></div>`).join('');
+const stats=Object.keys(league.scoring);$('calcInputs').innerHTML=stats.map(k=>`<div class="field"><label>${k}</label><input type="number" min="0" step=".1" id="calc_${k}" value="0"></div>`).join('');
+$('compareInputs').innerHTML=['A','B'].map(p=>`<div style="padding:10px;background:#0a192b;border:1px solid var(--line);border-radius:9px;margin:9px 0"><b>Candidate ${p} projected stats</b><div class="formgrid" style="margin-top:8px">${stats.map(k=>`<div class="field"><label>${k}</label><input type="number" min="0" step=".1" id="cmp${p}_${k}" value="0"></div>`).join('')}</div></div>`).join('');
+}
+function saveLeague(){league.teams=+$('teams').value;league.addLimit=+$('addLimit').value;league.goalieMinimum=+$('goalieMinimum').value;league.addsUsed=+$('addsUsed').value;Object.keys(league.scoring).forEach(k=>league.scoring[k]=+$('score_'+k).value);Object.keys(league.slots).forEach(k=>league.slots[k]=+$('slot_'+k).value);persist();$('saveLeagueMsg').textContent='Saved ✓'}
+function loadLeague(){$('teams').value=league.teams;$('addLimit').value=league.addLimit;$('goalieMinimum').value=league.goalieMinimum;$('addsUsed').value=league.addsUsed;Object.keys(league.scoring).forEach(k=>$('score_'+k).value=league.scoring[k]);Object.keys(league.slots).forEach(k=>$('slot_'+k).value=league.slots[k])}
+function addPlayer(){const name=$('playerName').value.trim();if(!name)return alert('Enter a player name first.');roster.push({id:Date.now()+Math.random(),name,pos:$('playerPos').value,team:$('playerNhlTeam').value.trim().toUpperCase()});$('playerName').value='';$('playerNhlTeam').value='';persist();renderRoster()}
+function removePlayer(id){roster=roster.filter(p=>p.id!==id);persist();renderRoster()}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderRoster(){$('rosterTag').textContent=roster.length+' players';$('rosterTable').innerHTML=roster.length?`<table><thead><tr><th>Player</th><th>Pos.</th><th>Team</th><th></th></tr></thead><tbody>${roster.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.pos)}</td><td>${esc(p.team||'—')}</td><td><button class="btn danger" style="padding:5px 8px" onclick="removePlayer(${p.id})">Remove</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No players added yet. Add your roster on the left.</div>'}
+function points(s){return Object.entries(league.scoring).reduce((sum,[k,v])=>sum+(+(s[k]||0))*v,0)}
+function calculatePoints(){const s={};Object.keys(league.scoring).forEach(k=>s[k]=+$('calc_'+k).value);$('calcResult').innerHTML=`<div class="metric">${points(s).toFixed(2)}</div><div class="small">Estimated fantasy points using your saved scoring.</div>`}
+function comparePlayers(){const names=[$('candidateA').value||'Candidate A',$('candidateB').value||'Candidate B'];const vals=['A','B'].map(p=>{const s={};Object.keys(league.scoring).forEach(k=>s[k]=+$('cmp'+p+'_'+k).value);return points(s)});const winner=vals[0]===vals[1]?'Even projection':names[vals[0]>vals[1]?0:1]+' projects higher';$('compareResult').innerHTML=`<div class="recommend"><span>${esc(names[0])}</span><b>${vals[0].toFixed(2)} pts</b></div><div class="recommend"><span>${esc(names[1])}</span><b>${vals[1].toFixed(2)} pts</b></div><p class="tag">${esc(winner)}</p><p class="small">This estimate depends on the projections entered. Schedule, injuries, role and availability are not included yet.</p>`}
+function previewImages(e){$('imagePreview').innerHTML='';[...e.target.files].forEach(f=>{if(!f.type.startsWith('image/'))return;const img=document.createElement('img');img.src=URL.createObjectURL(f);img.alt=f.name;$('imagePreview').appendChild(img)})}
+function refresh(){$('rosterCount').textContent=roster.length;$('leagueTeams').textContent=league.teams||'—';$('addsLeft').textContent=Math.max(0,(league.addLimit||0)-(league.addsUsed||0));$('goalieMin').textContent=league.goalieMinimum??'—';$('decisionText').textContent=roster.length?`You have ${roster.length} players saved. Add free-agent candidates and projections in Player Tools to compare them using your league scoring.`:'Add your league settings and roster to begin personalized comparisons.'}
+buildFields();loadLeague();refresh();renderRoster();
+</script>
+</body>
+</html>
