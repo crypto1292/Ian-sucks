@@ -67,7 +67,7 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="card span-7"><h3>Quick scoring calculator</h3><p class="small">Estimate fantasy points from a projected stat line.</p><div class="formgrid" id="calcInputs"></div><button class="btn" onclick="calculatePoints()">Calculate points</button><div id="calcResult" style="margin-top:14px"></div></div></div>
 </section>
 </main>
-<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v10 · Not affiliated with Yahoo or the NHL</div>
+<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v11 · Not affiliated with Yahoo or the NHL</div>
 </div>
 <script>
 const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.5,SHO:3};
@@ -124,24 +124,31 @@ async function load(){
  try{await load0();try{K.setItem('ihq_D',JSON.stringify({t:Date.now(),D}))}catch(x){}}catch(e){const c=K.getItem('ihq_D');if(!c)throw e;D=JSON.parse(c).D}
  return D;
 }
-async function viaClub(st){
- const r=await Promise.all(st.standings.map(x=>x.teamAbbrev.default).map(t=>J('https://api-web.nhle.com/v1/club-stats/'+t+'/now').then(d=>({t,d}))));
+async function viaClub(st,get){
+ const r=await Promise.all(st.standings.map(x=>x.teamAbbrev.default).map(t=>get(t).then(d=>({t,d}))));
  const SK=[],GL=[],nm=p=>p.firstName.default+' '+p.lastName.default;
- r.forEach(({t,d})=>{(d.skaters||[]).forEach(p=>SK.push({n:nm(p),pos:pos(p.positionCode),t,gp:p.gamesPlayed,s:{G:p.goals,A:p.assists,PPP:(p.powerPlayGoals||0)*2,SHP:p.shorthandedGoals||0,SOG:p.shots,HIT:0,BLK:0}}));(d.goalies||[]).forEach(p=>GL.push({n:nm(p),pos:'G',t,gp:p.gamesStarted||p.gamesPlayed,sv:p.savePercentage,gaa:p.goalsAgainstAverage,s:{W:p.wins,GA:p.goalsAgainst,SV:p.saves,SHO:p.shutouts}}))});
+ r.forEach(({t,d})=>{if(!d)return;(d.skaters||[]).forEach(p=>SK.push({n:nm(p),pos:pos(p.positionCode),t,gp:p.gamesPlayed,s:{G:p.goals,A:p.assists,PPP:(p.powerPlayGoals||0)*2,SHP:p.shorthandedGoals||0,SOG:p.shots,HIT:0,BLK:0}}));(d.goalies||[]).forEach(p=>GL.push({n:nm(p),pos:'G',t,gp:p.gamesStarted||p.gamesPlayed,sv:p.savePercentage,gaa:p.goalsAgainstAverage,s:{W:p.wins,GA:p.goalsAgainst,SV:p.saves,SHO:p.shutouts}}))});
  return{SK,GL};
 }
 async function load0(){
  if(D)return D;
- const b='https://api.nhle.com/stats/rest/en/',q='?limit=-1&cayenneExp='+SE,A='https://api-web.nhle.com/v1/',ok=p=>p.catch(()=>null);
- const [sk,rt,gl,st,w0,w1]=await Promise.all([ok(J(b+'skater/summary'+q)),ok(J(b+'skater/realtime'+q)),ok(J(b+'goalie/summary'+q)),ok(J(A+'standings/now')),ok(J(A+'schedule/'+mon(0))),ok(J(A+'schedule/'+mon(7)))]);
+ let DJ=null,sk,rt,gl,st,ws,cl;
+ try{const r=await fetch('data.json?'+Date.now());if(r.ok)DJ=await r.json()}catch(e){}
+ if(DJ&&DJ.weeks&&DJ.weeks.length&&((DJ.sk&&DJ.gl)||DJ.clubs)){({sk,rt,gl,st}=DJ);ws=DJ.weeks;cl=DJ.clubs}
+ else{
+  const b='https://api.nhle.com/stats/rest/en/',q='?limit=-1&cayenneExp='+SE,A='https://api-web.nhle.com/v1/',ok=p=>p.catch(()=>null);
+  const r=await Promise.all([ok(J(b+'skater/summary'+q)),ok(J(b+'skater/realtime'+q)),ok(J(b+'goalie/summary'+q)),ok(J(A+'standings/now')),ok(J(A+'schedule/'+mon(0))),ok(J(A+'schedule/'+mon(7)))]);
+  [sk,rt,gl,st]=r;ws=[r[4],r[5]].filter(Boolean);
+  if(!ws.length||!(sk&&gl||st))throw new Error('NHL data unreachable (stats '+(sk&&gl?'ok':'failed')+', standings '+(st?'ok':'failed')+', schedule '+(ws.length?'ok':'failed')+'). Add the data updater file (nhl-data.yml) to GitHub so the app can load NHL data from your own site.');
+ }
  let SK,GL;
  if(sk&&gl){const rr={};if(rt)rt.data.forEach(p=>rr[p.playerId]=p);
   SK=sk.data.map(p=>{const r=rr[p.playerId]||{};return{n:p.skaterFullName,pos:pos(p.positionCode),t:last(p.teamAbbrevs),gp:p.gamesPlayed,s:{G:p.goals,A:p.assists,PPP:p.ppPoints,SHP:p.shPoints,SOG:p.shots,HIT:r.hits||0,BLK:r.blockedShots||0}}});
   GL=gl.data.map(p=>({n:p.goalieFullName,pos:'G',t:last(p.teamAbbrevs),gp:p.gamesStarted||p.gamesPlayed,sv:p.savePct,gaa:p.goalsAgainstAverage,s:{W:p.wins,GA:p.goalsAgainst,SV:p.saves,SHO:p.shutouts}}))}
- else if(st){const c=await viaClub(st);SK=c.SK;GL=c.GL}
- else throw new Error('NHL data unreachable (stats '+(sk&&gl?'ok':'failed')+', standings '+(st?'ok':'failed')+', schedule '+(w0?'ok':'failed')+')');
- if(!w0)throw new Error('NHL schedule unreachable (stats ok, schedule failed)');
- D={sk:SK,gl:GL,tgp:st?Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.gamesPlayed])):{},off:st?Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.goalFor/Math.max(1,x.gamesPlayed)])):{},sch:[sch(w0),w1?sch(w1):{}]};
+ else{const c=await viaClub(st,cl?t=>Promise.resolve(cl[t]):t=>J('https://api-web.nhle.com/v1/club-stats/'+t+'/now'));SK=c.SK;GL=c.GL}
+ const all={};ws.forEach(w=>Object.entries(sch(w)).forEach(([t,g])=>(all[t]=all[t]||[]).push(...g)));
+ const wk=n=>{const a=mon(7*n),z=mon(7*n+6),o={};Object.entries(all).forEach(([t,g])=>o[t]=g.filter(x=>x.date>=a&&x.date<=z));return o};
+ D={sk:SK,gl:GL,tgp:st?Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.gamesPlayed])):{},off:st?Object.fromEntries(st.standings.map(x=>[x.teamAbbrev.default,x.goalFor/Math.max(1,x.gamesPlayed)])):{},sch:[wk(0),wk(1)]};
  const s=document.querySelector('.status');if(s)s.textContent='LIVE NHL DATA';
  return D;
 }
