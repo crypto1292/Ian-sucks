@@ -67,7 +67,7 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="card span-7"><h3>Quick scoring calculator</h3><p class="small">Estimate fantasy points from a projected stat line.</p><div class="formgrid" id="calcInputs"></div><button class="btn" onclick="calculatePoints()">Calculate points</button><div id="calcResult" style="margin-top:14px"></div></div></div>
 </section>
 </main>
-<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v11 · Not affiliated with Yahoo or the NHL</div>
+<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v12 · Not affiliated with Yahoo or the NHL</div>
 </div>
 <script>
 const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.5,SHO:3};
@@ -167,7 +167,7 @@ const availNote=()=>S.avail.length?`<span class="tag">Using your ${S.avail.lengt
 
 /* ---------- tabs ---------- */
 const nav=$('nav'),main=document.querySelector('main');
-[['matchup','Matchup'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
+[['matchup','Matchup'],['next','Next Week'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
  const b=document.createElement('button');b.dataset.tab=id;b.textContent=l;b.onclick=()=>showTab(id);nav.appendChild(b);
  const s=document.createElement('section');s.id=id;s.className='page hidden';main.appendChild(s)});
 const R={};
@@ -262,6 +262,29 @@ IHQ.mu=()=>{
  ${need?`<div class="callout" style="margin-top:12px"><b>Goalie warning:</b> you're on pace for about ${pace.toFixed(1)} starts and your league needs ${league.goalieMinimum}. Stream a goalie.</div>`:`<p class="small">Goalie minimum looks safe (about ${pace.toFixed(1)} starts of ${league.goalieMinimum}).</p>`}
  ${(need||st==='behind')&&gc.length?gc.map(x=>`<div class="recommend"><span><b>Goalie: ${esc(x.p.n)}</b> (${esc(x.p.t)})<br><span class="small">${x.g} game${x.g>1?'s':''} left, about ${x.v.toFixed(1)} pts</span></span><span class="pill">${st==='behind'?'upside':'fills minimum'}</span></div>`).join(''):''}</div>
  <p class="small" style="margin-top:12px">Projections use this season's stats and the games left, so they're an estimate. Check Yahoo for injuries before adding anyone.</p>`;
+};
+
+/* ---------- Next week plan ---------- */
+R.next=async()=>{
+ await load();const w=1,lim=league.addLimit;
+ const mk=p=>({p,v:proj(p,w),g:gms(p.t,w).length,r:ppg(p)});
+ const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(mk);
+ const ownSk=mine.filter(x=>x.p.pos!=='G').sort((a,b)=>a.v-b.v),ownG=mine.filter(x=>x.p.pos==='G');
+ const adds=pool(D.sk).map(mk).sort((a,b)=>b.v-a.v),moves=[],used=new Set();
+ ownSk.forEach(d=>{if(moves.length>=lim)return;const a=adds.find(x=>!used.has(x.p.n)&&x.p.pos===d.p.pos&&x.v>d.v+1);if(a){used.add(a.p.n);moves.push([d,a])}});
+ const best=adds[0],hold=pool(D.sk).filter(p=>p.gp>=6).map(mk).sort((a,b)=>b.r-a.r)[0];
+ const gl=pool(D.gl).map(p=>{const g=gms(p.t,w),o=g.length?g.reduce((a,x)=>a+(D.off[x.opp]||3),0)/g.length:3;return{...mk(p),o}}).filter(x=>x.g).sort((a,b)=>b.v/b.o-a.v/a.o).slice(0,3);
+ const starts=ownG.reduce((a,x)=>a+x.g*share(x.p),0),cnt=Object.entries(D.sch[1]).map(([t,g])=>[t,g.length]);
+ const tm=n=>cnt.filter(x=>x[1]===n).map(x=>x[0]).sort().join(', ')||'none';
+ const card=(t,x,why)=>x?`<div class="recommend"><span><b>${t}: ${esc(x.p.n)}</b> (${esc(x.p.t)}, ${x.p.pos})<br><span class="small">${why}</span></span><span class="pill">~${x.v.toFixed(1)} pts</span></div>`:'';
+ const mv=moves.map(([d,a])=>`<div class="recommend"><span><b>Drop ${esc(d.p.n)}, add ${esc(a.p.n)}</b> (${esc(a.p.t)}, ${a.p.pos})<br><span class="small">${d.g} game${d.g===1?'':'s'}, about ${d.v.toFixed(1)} pts → ${a.g} games, about ${a.v.toFixed(1)} pts</span></span><span class="pill">+${(a.v-d.v).toFixed(1)}</span></div>`).join('');
+ $('next').innerHTML=`<h2>Next Week Plan</h2><p class="sub">Who to add for next week's schedule, with your team and league scoring in mind. You get ${lim} adds next week.</p>
+ <div class="callout"><b>4+ games next week:</b> ${tm(4)}${tm(5)!=='none'?', '+tm(5):''}<br><b>Only 2 games:</b> ${tm(2)}</div>
+ <div class="card">${card('Best pickup overall',best,best?`${best.g} games next week at ${best.r.toFixed(2)} pts per game`:'')}${card('Best long-term hold',hold,hold?`Highest scoring rate available, ${hold.r.toFixed(2)} pts per game`:'')}${!best?'<div class="empty">No players found.</div>':''}</div>
+ <div class="card" style="margin-top:14px"><h3>Best swaps for next week</h3>${mv||'<div class="empty">Your team already has a good schedule. No upgrades worth an add.</div>'}</div>
+ <div class="card" style="margin-top:14px"><h3>Goalies</h3><p class="small">Your goalies should start about <b>${starts.toFixed(1)}</b> games next week. Your league needs ${league.goalieMinimum}.${starts<league.goalieMinimum?' <b>Add a goalie.</b>':' You should be fine.'}</p>${gl.map(x=>`<div class="recommend"><span><b>${esc(x.p.n)}</b> (${esc(x.p.t)})<br><span class="small">${x.g} game${x.g===1?'':'s'}, opponents score ${x.o.toFixed(2)} goals per game${x.o<2.8?' (easy)':''}</span></span><span class="pill">~${x.v.toFixed(1)} pts</span></div>`).join('')}</div>
+ <div class="card" style="margin-top:14px"><h3>Your team's schedule next week</h3>${mine.length?tbl(['Player','Pos','Team','Games','Projected'],mine.slice().sort((a,b)=>a.g-b.g||a.v-b.v).map(x=>[`<b>${esc(x.p.n)}</b>`,x.p.pos,x.p.t,x.g,x.v.toFixed(1)])):'<div class="empty">Add your team first (Matchup tab).</div>'}</div>
+ <p class="small" style="margin-top:12px">Projections use this season's stats and next week's games. Check injuries on Yahoo before adding anyone.</p>`;
 };
 
 /* ---------- Coach (free, built-in rules) ---------- */
