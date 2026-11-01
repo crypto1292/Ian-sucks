@@ -67,7 +67,7 @@ input,select{width:100%;background:#09182a;border:1px solid #304762;border-radiu
 <div class="card span-7"><h3>Quick scoring calculator</h3><p class="small">Estimate fantasy points from a projected stat line.</p><div class="formgrid" id="calcInputs"></div><button class="btn" onclick="calculatePoints()">Calculate points</button><div id="calcResult" style="margin-top:14px"></div></div></div>
 </section>
 </main>
-<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v15 · Not affiliated with Yahoo or the NHL</div>
+<div class="footer">Ian sucks · Fantasy Hockey IQ · Independent project · v17 · Not affiliated with Yahoo or the NHL</div>
 </div>
 <script>
 const scoringDefaults={G:5,A:3,PPP:1,SHP:0,SOG:0,HIT:0,BLK:0,W:5,GA:-3,SV:.5,SHO:3};
@@ -391,6 +391,37 @@ $('readBtn').onclick=async()=>{
  [...dg.children].forEach(c=>{const t=c.textContent;if(t.includes('Build roadmap')||t.includes('Quick setup'))c.remove();else if(t.includes('Decision centre'))c.remove();else c.remove()});
  const T=[['matchup','Beat this week\'s opponent','Upload both teams, get a win chance and who to add'],['next','Plan next week','Best schedule and best pickup overall'],['pickups','Best pickups right now','Top players ranked with your scoring']];
  dg.insertAdjacentHTML('afterbegin',T.map(([id,t,d])=>`<button class="card span-6" style="text-align:left;color:var(--text);width:100%;border-color:#3b5776" onclick="showTab('${id}')"><div style="font-size:20px;font-weight:800">${t}</div><div class="small" style="margin-top:4px">${d}</div></button>`).join(''));
+})();
+/* ---------- Genie logo ---------- */
+(()=>{
+ const img=document.querySelector('.hero-art img');if(!img)return;
+ const css=document.createElement('style');
+ css.textContent=`.hero-art img{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;touch-action:manipulation;transition:filter .3s}
+.hero-art img.rub{animation:wob .7s;filter:drop-shadow(0 0 24px #b388ff) drop-shadow(0 12px 24px #0008)}
+@keyframes wob{0%,100%{transform:rotate(0)}20%{transform:rotate(-4deg) scale(1.03)}40%{transform:rotate(4deg) scale(1.06)}60%{transform:rotate(-3deg) scale(1.03)}80%{transform:rotate(3deg)}}
+.gb{margin:12px auto 0;max-width:340px;background:#1d1b3a;border:1px solid #7c5cd6;color:#efe9ff;border-radius:14px;padding:11px 14px;font-size:15px;font-weight:700;text-align:center;box-shadow:0 0 18px #7c5cd655}
+.spark{position:absolute;pointer-events:none;font-size:22px;animation:rise 1.3s forwards}
+@keyframes rise{from{opacity:1;transform:translateY(0) scale(.6)}to{opacity:0;transform:translateY(-90px) scale(1.5) rotate(50deg)}}`;
+ document.head.appendChild(css);
+ const art=img.parentElement;art.style.position='relative';
+ art.insertAdjacentHTML('beforeend','<div class="gb" id="genieBubble">🧞 Rub my head for a hockey chirp!</div>');
+ const bub=document.getElementById('genieBubble');
+ const C=["Your goalie lets in goals like it's his job. Oh wait, it is.", "I've seen better lineups at a bus station.", "Your power play is a rumor.", "You drafted with your heart. Your heart can't skate.", "Even the Zamboni has a better plus-minus than your defense.", "Your team has the offense of a Tuesday afternoon at the DMV.", "Streaming goalies with your eyes closed? It shows.", "Your opponent saw your roster and called their mom to brag.", "Pretty bold to call that a lineup with a straight face.", "Your bench is begging for a trade and honestly, I respect it.", "You check the waiver wire like you check your ex's page: constantly, with zero results.", "That's not a hot streak, that's your thermostat.", "Your top line is a group chat nobody replies to.", "Fantasy hockey is a game of skill. Yours is more a game of chance. Bad chance.", "If your roster were any softer, it'd need a warning label.", "Somewhere a goalie is sitting on waivers wondering why you never called.", "You rubbed my head for advice while starting a backup? Bold.", "I grant three wishes. Two of them are 'start someone who plays tonight.'", "Your team scores like it's allergic to the net.", "Calling that lineup a work in progress is generous. It's a crime scene.", "You have more drop candidates than a clearance rack.", "Win probability: spicy. Your actual plan: mild salsa.", "Trade deadline called. It said bring a better offer.", "Chirp level: playoffs. Your roster level: preseason.", "Your best player is on your bench. Genius. Pure hockey IQ."];
+ let deck=[];const DY=["Why is {n} still on your roster? Is it a hostage situation?", "{n} called. He wants to know if you've looked at his stats. Neither have I.", "Bold of you to start {n} and expect points.", "Rub my head again and I'll tell {n} you think he's overrated."].map(t=>n=>t.replace('{n}',n));const next=()=>{try{if(roster.length&&Math.random()<.3){const r=roster[Math.floor(Math.random()*roster.length)];return DY[Math.floor(Math.random()*DY.length)](r.name)}}catch(e){}if(!deck.length)deck=C.slice().sort(()=>Math.random()-.5);return deck.pop()};
+ let last=0;
+ const fire=()=>{
+  const n=Date.now();if(n-last<1200)return;last=n;
+  bub.textContent='🧞 '+next();
+  img.classList.remove('rub');void img.offsetWidth;img.classList.add('rub');
+  for(let i=0;i<8;i++){const s=document.createElement('span');s.className='spark';s.textContent=['✨','💨','⭐','🪄'][i%4];s.style.left=(img.offsetLeft+Math.random()*img.offsetWidth)+'px';s.style.top=(img.offsetTop+Math.random()*img.offsetHeight*.5)+'px';art.appendChild(s);setTimeout(()=>s.remove(),1400)}
+  try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
+ };
+ let down=false,lx=0,dir=0,turns=0,t0=0;
+ img.addEventListener('pointerdown',e=>{down=true;lx=e.clientX;dir=0;turns=0;t0=Date.now()});
+ img.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-lx;if(Math.abs(dx)<6)return;const d=dx>0?1:-1;if(dir&&d!==dir)turns++;dir=d;lx=e.clientX;if(turns>=3&&Date.now()-t0<2500){turns=0;fire()}});
+ ['pointerup','pointercancel','pointerleave'].forEach(ev=>img.addEventListener(ev,()=>{down=false}));
+ img.addEventListener('click',fire);
+ img.addEventListener('contextmenu',e=>e.preventDefault());
 })();
 })();
 
