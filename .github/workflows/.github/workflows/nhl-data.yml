@@ -1,5 +1,8 @@
 name: Update NHL data
 on:
+  push:
+    paths:
+      - '.github/workflows/nhl-data.yml'
   schedule:
     - cron: '0 */3 * * *'
   workflow_dispatch:
