@@ -1,0 +1,48 @@
+name: Update NHL data
+on:
+  push:
+    paths:
+      - '.github/workflows/nhl-data.yml'
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Fetch NHL data
+        run: |
+          cat > fetch.cjs <<'EOF'
+          const fs=require('fs');
+          const get=async u=>{for(let i=0;i<3;i++){try{const r=await fetch(u,{headers:{'user-agent':'Mozilla/5.0'}});if(r.ok)return await r.json();console.log('status',r.status,u)}catch(e){console.log('error',e.message,u)}await new Promise(r=>setTimeout(r,2000))}return null};
+          const d=new Date(Date.now()-5*36e5),pad=n=>String(n).padStart(2,'0');
+          const ds=x=>x.getUTCFullYear()+'-'+pad(x.getUTCMonth()+1)+'-'+pad(x.getUTCDate());
+          const mon=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()-((d.getUTCDay()+6)%7)));
+          const start=d.getUTCMonth()>=8?d.getUTCFullYear():d.getUTCFullYear()-1,sid=''+start+(start+1);
+          const q='?limit=-1&cayenneExp='+encodeURIComponent('seasonId='+sid+' and gameTypeId=2');
+          const B='https://api.nhle.com/stats/rest/en/',A='https://api-web.nhle.com/v1/';
+          (async()=>{
+            const [sk,rt,gl,st]=await Promise.all([get(B+'skater/summary'+q),get(B+'skater/realtime'+q),get(B+'goalie/summary'+q),get(A+'standings/now')]);
+            const weeks=[];
+            for(let i=0;i<3;i++){const m=new Date(mon.getTime()+i*7*864e5);weeks.push(await get(A+'schedule/'+ds(m)))}
+            let clubs=null;
+            if((!sk||!gl)&&st){clubs={};for(const x of st.standings){const t=x.teamAbbrev.default;clubs[t]=await get(A+'club-stats/'+t+'/now')}}
+            console.log({sk:!!sk,gl:!!gl,st:!!st,weeks:weeks.map(w=>!!w),clubs:!!clubs});
+            if(!st&&!sk&&!weeks[0]){console.log('No data');process.exit(1)}
+            fs.writeFileSync('data.json',JSON.stringify({t:Date.now(),sk,rt,gl,st,weeks:weeks.filter(Boolean),clubs}));
+          })();
+          EOF
+          node fetch.cjs
+          rm fetch.cjs
+      - name: Save data
+        run: |
+          git config user.name "nhl-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet || (git commit -m "Update NHL data" && git push)
