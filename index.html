@@ -82,6 +82,13 @@ label{font-size:11px;font-weight:800;letter-spacing:.04em;color:#a8bbd0}
  .metric{font-size:29px}
 }
 
+/* NHL LIVE SCORE TICKER */
+.scorebar{position:sticky;top:0;z-index:35;margin:0 -24px;padding:9px 24px;background:#071629f2;border-bottom:1px solid #31506e;backdrop-filter:blur(16px);box-shadow:0 8px 22px #0003}
+.scorebar-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}.scorebar-label{font-size:10px;font-weight:900;letter-spacing:.16em;color:#9fc8e7}.scorebar-date{font-size:10px;color:#819bb6}
+.scorebar-track{overflow:hidden}.scorebar-run{display:flex;width:max-content;gap:9px;animation:scoreTicker 75s linear infinite}.scorebar-track:hover .scorebar-run{animation-play-state:paused}.scorebar-run.static{animation:none;width:100%;justify-content:center}
+.scoregame{display:flex;align-items:center;gap:9px;min-width:188px;padding:7px 11px;border:1px solid #2b4664;border-radius:11px;background:linear-gradient(135deg,#142b45,#0c1b2d);white-space:nowrap}.scoreteam{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:850;color:#eaf5ff}.scoreteam img{width:21px;height:21px;object-fit:contain}.scorevalue{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff}.scoremid{min-width:48px;text-align:center}.scorestate{font-size:9px;font-weight:900;letter-spacing:.04em;color:#9fb5ca}.scorestate.live{color:#ff858d}.scorestate.final{color:#8da4bd}.scorestate.soon{color:#8be2ff}.score-live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff6976;margin-right:4px;box-shadow:0 0 8px #ff6976}
+@keyframes scoreTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:760px){.scorebar{margin:0 -12px;padding:8px 12px}.scorebar-run{gap:7px;animation-duration:65s}.scoregame{min-width:174px;padding:6px 9px}.scoreteam{font-size:11px}.scoreteam img{width:19px;height:19px}nav{top:78px}}
 </style>
 </head>
 <body>
@@ -90,6 +97,7 @@ label{font-size:11px;font-weight:800;letter-spacing:.04em;color:#a8bbd0}
 <div class="brand"><img src="mascot-logo.webp" alt="Ian sucks hockey mascot"><div><h1>Ian sucks</h1><p>FANTASY HOCKEY IQ</p></div></div>
 <div class="status">EARLY BUILD · LOCAL DATA</div>
 </header>
+<div class="scorebar" id="nhlScorebar" aria-label="Today's NHL scores"><div class="scorebar-head"><span class="scorebar-label">● NHL TODAY</span><span class="scorebar-date" id="scorebarDate">Loading today's games…</span></div><div class="scorebar-track"><div class="scorebar-run static" id="scorebarRun"><div class="scoregame"><span class="scorestate">LOADING SCORES</span></div></div></div></div>
 <nav id="nav">
 <button class="active" data-tab="dashboard">Dashboard</button><button data-tab="team">My Team</button><button data-tab="league">League Setup</button><button data-tab="import">Import Screenshots</button><button data-tab="tools">Player Tools</button>
 </nav>
@@ -491,5 +499,18 @@ $('readBtn').onclick=async()=>{
 })();
 
 </script>
+<script>/* NHL LIVE SCORE TICKER */
+(()=>{const bar=document.getElementById('scorebarRun'),dateLabel=document.getElementById('scorebarDate');if(!bar||!dateLabel)return;
+const api='https://api-web.nhle.com/v1/score/',proxies=[u=>u,u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(u),u=>'https://corsproxy.io/?url='+encodeURIComponent(u)];
+const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const team=t=>{const a=t?.abbrev||'—',logo=t?.logo||'https://assets.nhle.com/logos/nhl/svg/'+a+'_dark.svg';return '<span class="scoreteam"><img src="'+esc(logo)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"><span>'+esc(a)+'</span></span>'};
+const status=g=>{const s=String(g.gameState||g.gameScheduleState||'').toUpperCase(),p=g.periodDescriptor?.number,pt=g.periodDescriptor?.periodType;if(['LIVE','CRIT','IN_PROGRESS'].includes(s)){const c=g.clock||{};return{live:true,cls:'live',label:(c.inIntermission?'INT':pt==='OT'?'OT':pt==='SO'?'SO':p?'P'+p:'LIVE')+(c.timeRemaining?' · '+c.timeRemaining:'')}}if(['FINAL','OFF'].includes(s))return{cls:'final',label:pt==='OT'?'FINAL/OT':pt==='SO'?'FINAL/SO':'FINAL'};const dt=g.startTimeUTC?new Date(g.startTimeUTC):null;return{cls:'soon',label:dt?dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'UPCOMING'}};
+const card=g=>{const st=status(g),a=g.awayTeam||{},h=g.homeTeam||{},scores=st.live||st.cls==='final';return '<div class="scoregame">'+team(a)+'<span class="scorevalue">'+(scores?esc(a.score??0):'—')+'</span><span class="scoremid"><span class="scorestate '+st.cls+'">'+(st.live?'<span class="score-live-dot"></span>':'')+esc(st.label)+'</span></span><span class="scorevalue">'+(scores?esc(h.score??0):'—')+'</span>'+team(h)+'</div>'};
+async function get(){const d=day();let err;for(const mk of proxies){try{const r=await fetch(mk(api+d),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const j=await r.json();if(!Array.isArray(j.games))throw Error('Unexpected scoreboard');return{d,games:j.games}}catch(e){err=e}}throw err||Error('Unavailable')}
+function render(d,games){dateLabel.textContent=new Date(d+'T12:00:00').toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+' · '+games.length+' '+(games.length===1?'GAME':'GAMES');if(!games.length){bar.className='scorebar-run static';bar.innerHTML='<div class="scoregame"><span class="scorestate">NO NHL GAMES SCHEDULED TODAY</span></div>';return}const cards=games.slice().sort((a,b)=>String(a.startTimeUTC||'').localeCompare(String(b.startTimeUTC||''))).map(card).join('');bar.className='scorebar-run';bar.innerHTML=cards+cards;bar.dataset.loaded='1'}
+async function update(){try{const x=await get();render(x.d,x.games)}catch(e){if(!bar.dataset.loaded){bar.className='scorebar-run static';bar.innerHTML='<div class="scoregame"><span class="scorestate">SCORES TEMPORARILY UNAVAILABLE · RETRYING</span></div>';dateLabel.textContent='NHL scoreboard'}}}
+update();setInterval(update,45000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)update()});
+})();</script>
 </body>
 </html>
