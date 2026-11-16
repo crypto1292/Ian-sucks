@@ -500,14 +500,14 @@ IHQ.addMu=(side,id)=>{
  else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{opponents:[]};m.opponents=m.opponents||[];if(m.opponents.some(x=>N(x.name)===N(p.n)))return;m.opponents.push({name:p.n,pos:p.pos,team:p.t});a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
  $('muResults'+side).innerHTML='';$('muSearch'+side).value='';$('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
  const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
- if($('muOut')){if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>{if($('muOut'))IHQ.mu()});else IHQ.mu();}
+ if($('muOut'))setTimeout(()=>{if($('muOut'))IHQ.mu()},80);
 };
 IHQ.removeMu=(side,index)=>{
  if(side==='My'){const p=roster[index];if(p)removePlayer(p.id)}
  else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{};m.opponents=(m.opponents||[]).filter((x,i)=>i!==index);a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
  $('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
  const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
- if($('muOut')){if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>{if($('muOut'))IHQ.mu()});else IHQ.mu();}
+ if($('muOut'))setTimeout(()=>{if($('muOut'))IHQ.mu()},80);
 };
 
 const mkWorker=async Tz=>{const L=['https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int','https://tessdata.projectnaptha.com/4.0.0'];let e;for(const langPath of L){try{return await Tz.createWorker('eng',1,{langPath})}catch(x){e=x}}throw new Error('Text reader could not start ('+((e&&e.message)||e)+'). Check your connection and try again.')};
@@ -530,6 +530,8 @@ IHQ.mu=()=>{
  const fp=n=>{const t=N(n);let c=all.filter(p=>N(p.n)===t);if(!c.length)c=all.filter(p=>N(p.n).endsWith(' '+t));return c.sort((a,b)=>b.gp-a.gp)[0]};
  const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(wrapP),opn=(weekData.opponents||[]).map(x=>findP(x.name)).filter(Boolean).map(wrapP);
  const ml=lineup(mine),ol=lineup(opn),sum=l=>l.reduce((a,x)=>a+x.v,0),mp=sum(ml),op=opn.length?sum(ol):mp*.95;
+ const benchMine=mine.filter(x=>!ml.includes(x)),benchOpp=opn.filter(x=>!ol.includes(x));
+ const counted=(label,list,bench)=>`<div style="margin-top:10px"><b>${label} counted (${list.length})</b><div class="small">${list.length?list.map(x=>`${esc(x.p.n)} · ${x.g} GP left · ~${x.v.toFixed(1)} pts`).join(' | '):'No eligible starters matched'}</div>${bench.length?`<div class="small" style="opacity:.7;margin-top:4px">Bench not included: ${bench.map(x=>esc(x.p.n)).join(', ')}</div>`:''}</div>`;
  const diff=ms+mp-(os+op),sd=Math.max(10,.22*Math.sqrt(mp*mp+op*op)),wp=Math.round(50*(1+erf(diff/sd/Math.SQRT2)));
  const st=wp>=65?'ahead':wp<=35?'behind':'close';
  const say={ahead:`You're projected to <b>win</b>. Play it safe: fix any player with no games left and make sure you hit your goalie minimum. Don't chase risky streams.`,behind:`You're projected to <b>lose</b>. You need upside, so add the players with the most games left and the best scoring rate.`,close:`This one is <b>close</b>. Every point counts, so upgrade your weakest spots.`}[st];
@@ -542,7 +544,7 @@ IHQ.mu=()=>{
  const days=7-((new Date().getDay()+6)%7),fin=days<=2,gap=os+op-ms-mp,extra=(gap>0?`<p>You need about <b>${gap.toFixed(0)}</b> more points than projected to win.</p>`:'')+(fin?`<div class="callout"><b>The week is almost over (${days} day${days>1?'s':''} left).</b> Top players to pick up right now:</div>${cands.slice(0,6).map(x=>`<div class="recommend"><span><b>${nm(x.p)}</b> (${esc(x.p.t)}, ${x.p.pos})<br><span class="small">${x.g} game${x.g>1?'s':''} left</span></span><span class="pill">~${x.v.toFixed(1)} pts</span></div>`).join('')}`:'');
  $('muOut').innerHTML=`<div class="card"><div class="grid" style="margin-bottom:12px"><div class="span-4"><div class="metric">${(ms+mp).toFixed(0)}</div><div class="metric-label">You (projected final)</div></div><div class="span-4"><div class="metric">${(os+op).toFixed(0)}</div><div class="metric-label">Opponent${opn.length?'':' (estimate)'}</div></div><div class="span-4"><div class="metric">${wp}%</div><div class="metric-label">Your win chance (rough)</div></div></div><div class="callout">${say}</div>${extra}
  ${opn.length?'':'<p class="small">Add your opponent\'s players for a more accurate read.</p>'}
- ${tbl(['','You','Opp.'],['C','W','D','G'].map(g=>[g,...grp(g)]))}</div>
+ ${tbl(['','You','Opp.'],['C','W','D','G'].map(g=>[g,...grp(g)]))}${counted('Your starters',ml,benchMine)}${counted('Opponent starters',ol,benchOpp)}</div>
  <div class="card" style="margin-top:14px"><h3>Who to stream (${left} add${left===1?'':'s'} left)</h3>${rl||`<div class="empty">${left?'No upgrades worth an add right now.':'No adds left this week.'}</div>`}
  ${need?`<div class="callout" style="margin-top:12px"><b>Goalie warning:</b> you're on pace for about ${pace.toFixed(1)} starts and your league needs ${league.goalieMinimum}. Stream a goalie.</div>`:`<p class="small">Goalie minimum looks safe (about ${pace.toFixed(1)} starts of ${league.goalieMinimum}).</p>`}
  ${(need||st==='behind')&&gc.length?gc.map(x=>`<div class="recommend"><span><b>Goalie: ${nm(x.p)}</b> (${esc(x.p.t)})<br><span class="small">${x.g} game${x.g>1?'s':''} left, about ${x.v.toFixed(1)} pts</span></span><span class="pill">${st==='behind'?'upside':'fills minimum'}</span></div>`).join(''):''}</div>
