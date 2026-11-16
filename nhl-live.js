@@ -7,7 +7,12 @@
  const get=async(url)=>{
   const isNhl=url.startsWith('https://api-web.nhle.com/');
   const routes=isNhl
-   ? ['https://proxy.cors.dev/'+url,'https://api.allorigins.win/raw?url='+encodeURIComponent(url)]
+   ? [
+      'https://corsproxy.io/?url='+encodeURIComponent(url),
+      'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+      'https://proxy.cors.dev/'+url,
+      'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)
+     ]
    : [url];
   let lastError=null;
   for(const requestUrl of routes){
@@ -21,7 +26,7 @@
    }finally{clearTimeout(t)}
   }
   if(lastError?.name==='AbortError')throw Error('NHL feed timed out through both data routes. Try again shortly.');
-  if(lastError instanceof TypeError)throw Error('NHL data routes could not be reached. This may be a network or browser restriction.');
+  if(lastError instanceof TypeError)throw Error('All NHL data routes were blocked by the browser or network. Try switching Wi-Fi/mobile data, then refresh.');
   throw lastError||Error('NHL feed unavailable.');
  };
  const nhl='https://api-web.nhle.com/v1/';
