@@ -5,20 +5,24 @@
  const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
  const fmtTime=s=>{if(!s)return '';const d=new Date(s);return isNaN(d)?s:d.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})};
  const get=async(url)=>{
-  const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);
-  // NHL's public API omits browser CORS headers; use a read-only CORS bridge.
-  const requestUrl=url.startsWith('https://api-web.nhle.com/')
-    ? 'https://proxy.cors.dev/'+url
-    : url;
-  try{
-   const response=await fetch(requestUrl,{cache:'no-store',credentials:'omit',signal:c.signal});
-   if(!response.ok)throw Error('Feed returned HTTP '+response.status);
-   return await response.json();
-  }catch(e){
-   if(e.name==='AbortError')throw Error('The feed timed out. Please try again.');
-   if(e instanceof TypeError)throw Error('The feed could not be reached (possible browser CORS or network block).');
-   throw e;
-  }finally{clearTimeout(t)}
+  const isNhl=url.startsWith('https://api-web.nhle.com/');
+  const routes=isNhl
+   ? ['https://proxy.cors.dev/'+url,'https://api.allorigins.win/raw?url='+encodeURIComponent(url)]
+   : [url];
+  let lastError=null;
+  for(const requestUrl of routes){
+   const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
+   try{
+    const response=await fetch(requestUrl,{cache:'no-store',credentials:'omit',signal:c.signal});
+    if(!response.ok)throw Error('Feed returned HTTP '+response.status);
+    return await response.json();
+   }catch(e){
+    lastError=e;
+   }finally{clearTimeout(t)}
+  }
+  if(lastError?.name==='AbortError')throw Error('NHL feed timed out through both data routes. Try again shortly.');
+  if(lastError instanceof TypeError)throw Error('NHL data routes could not be reached. This may be a network or browser restriction.');
+  throw lastError||Error('NHL feed unavailable.');
  };
  const nhl='https://api-web.nhle.com/v1/';
  const espn='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/';
