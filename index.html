@@ -89,6 +89,25 @@ label{font-size:11px;font-weight:800;letter-spacing:.04em;color:#a8bbd0}
 .scoregame{display:flex;align-items:center;gap:9px;min-width:188px;padding:7px 11px;border:1px solid #2b4664;border-radius:11px;background:linear-gradient(135deg,#142b45,#0c1b2d);white-space:nowrap}.scoreteam{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:850;color:#eaf5ff}.scoreteam img{width:21px;height:21px;object-fit:contain}.scorevalue{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff}.scoremid{min-width:48px;text-align:center}.scorestate{font-size:9px;font-weight:900;letter-spacing:.04em;color:#9fb5ca}.scorestate.live{color:#ff858d}.scorestate.final{color:#8da4bd}.scorestate.soon{color:#8be2ff}.score-live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff6976;margin-right:4px;box-shadow:0 0 8px #ff6976}
 @keyframes scoreTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:760px){.scorebar{margin:0 -12px;padding:8px 12px}.scorebar-run{gap:7px;animation-duration:65s}.scoregame{min-width:174px;padding:6px 9px}.scoreteam{font-size:11px}.scoreteam img{width:19px;height:19px}nav{top:78px}}
+
+/* WEEKLY PICKUPS SPREADSHEET */
+.wk-sheet{overflow:hidden;border:1px solid #42617e;border-radius:14px;background:#081629;box-shadow:0 12px 28px #0003}
+.wk-sheet-title{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;background:#102b45;color:#c8eaff;font-size:10px;font-weight:900;letter-spacing:.13em}
+.wk-sheet-tabs{display:flex;gap:0;overflow:auto;background:#0b1d31;border-bottom:1px solid #34516d}
+.wk-sheet-tabs span{padding:10px 14px;white-space:nowrap;color:#91a9c2;font-size:10px;font-weight:900;letter-spacing:.08em;border-right:1px solid #29425c}
+.wk-sheet-tabs span.active{background:#183b5b;color:#a9eaff;box-shadow:inset 0 -2px #8be2ff}
+.wk-section{padding:13px 12px 15px;border-bottom:1px solid #2a425d}
+.wk-section:last-child{border-bottom:0}
+.wk-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 9px;color:#aee8ff;font-size:11px;letter-spacing:.06em}
+.wk-section-head span{color:#8ea7c0;font-size:10px;font-weight:500;letter-spacing:0}
+.wk-sheet table{min-width:580px;background:#0a192b;font-variant-numeric:tabular-nums}
+.wk-sheet th{background:#10243a}
+.wk-sheet td{border-right:1px solid #1d344d;border-bottom:1px solid #203750;padding:8px 9px;white-space:nowrap}
+.wk-sheet td:first-child{min-width:155px}
+.wk-sheet tr:nth-child(even) td{background:#ffffff04}
+.wk-rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:7px;border-radius:5px;background:#1a3551;color:#9ddfff;font-size:10px;font-weight:900}
+.wk-sheet .scoreteam img{vertical-align:middle}
+@media(max-width:760px){.wk-sheet-title{font-size:9px;padding:10px}.wk-section{padding:11px 8px}.wk-section-head{align-items:flex-start;flex-direction:column;gap:2px}.wk-sheet table{font-size:11px}.wk-sheet td{padding:8px 7px}}
 </style>
 </head>
 <body>
@@ -245,7 +264,7 @@ const availNote=()=>S.avail.length?`<span class="tag">Using your ${S.avail.lengt
 
 /* ---------- tabs ---------- */
 const nav=$('nav'),main=document.querySelector('main');
-[['matchup','Matchup'],['next','Next Week'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
+[['matchup','Matchup'],['next','Next Week'],['weekly','Weekly Pickups'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
  const b=document.createElement('button');b.dataset.tab=id;b.textContent=l;b.onclick=()=>showTab(id);nav.appendChild(b);
  const s=document.createElement('section');s.id=id;s.className='page hidden';main.appendChild(s)});
 const R={};
@@ -253,6 +272,29 @@ const oldShow=window.showTab;
 window.showTab=id=>{oldShow(id);if(R[id]){$(id).innerHTML='<div class="empty">Loading…</div>';R[id]().catch(e=>$(id).innerHTML=err(e))}};
 const redraw=()=>{const a=document.querySelector('.page:not(.hidden)');if(a&&R[a.id])R[a.id]().catch(e=>a.innerHTML=err(e))};
 window.IHQ={pos:v=>{S.pos=v;redraw()},wk:v=>{S.wk=+v;redraw()}};
+
+/* ---------- Weekly Pickups spreadsheet ---------- */
+R.weekly=async()=>{
+ await load();const w=S.wk,dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+ const logo=t=>'<img src="https://assets.nhle.com/logos/nhl/svg/'+esc(t)+'_dark.svg" alt="" loading="lazy" onerror="this.style.display=\'none\'" style="width:28px;height:28px;object-fit:contain;vertical-align:middle;margin-right:7px">';
+ const games=t=>gms(t,w);
+ const teams=Object.keys(D.sch[w]||{}).map(t=>({t,g:games(t)})).filter(x=>x.g.length).sort((a,b)=>b.g.length-a.g.length||a.t.localeCompare(b.t));
+ const teamRows=teams.map(x=>{const days=[...new Set(x.g.map(g=>dayNames[new Date(g.date+'T12:00:00').getDay()]))];const opp=x.g.map(g=>(g.home?'vs ':'@ ')+g.opp).join(' · ');return['<b>'+logo(x.t)+x.t+'</b>','<b>'+x.g.length+'</b>',days.join(', '),opp]});
+ const skaters=pool(D.sk).map(p=>({p,g:games(p.t).length,v:proj(p,w)})).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,20);
+ const goalies=pool(D.gl).map(p=>{const g=games(p.t),o=g.length?g.reduce((a,x)=>a+(D.off[x.opp]||3),0)/g.length:3;return{p,g:g.length,o,v:proj(p,w)*(3/o)}}).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,15);
+ const pRows=skaters.map((x,i)=>['<span class="wk-rank">'+(i+1)+'</span><b>'+nm(x.p)+'</b>',x.p.pos,'<b>'+logo(x.p.t)+x.p.t+'</b>',x.g,ppg(x.p).toFixed(2),'<b>'+x.v.toFixed(1)+'</b>']);
+ const gRows=goalies.map((x,i)=>['<span class="wk-rank">'+(i+1)+'</span><b>'+nm(x.p)+'</b>','<b>'+logo(x.p.t)+x.p.t+'</b>',x.g,x.p.sv?x.p.sv.toFixed(3):'—',x.o.toFixed(2),'<b>'+x.v.toFixed(1)+'</b>']);
+ $('weekly').innerHTML=`<h2>Weekly Pickups</h2><p class="sub">Your weekly waiver-wire worksheet. Ranked using your league scoring, this week's NHL schedule and the free-agent list you uploaded (if available).</p>
+ <div class="btnrow" style="margin:0 0 14px;align-items:center">${wkSel()} ${availNote()}</div>
+ <div class="wk-sheet">
+ <div class="wk-sheet-title"><span>IAN SUCKS · WEEKLY STREAMING WORKSHEET</span><span>${w?'NEXT WEEK':'THIS WEEK · GAMES REMAINING'}</span></div>
+ <div class="wk-sheet-tabs"><span class="active">TEAM SCHEDULE</span><span>SKATER ADDS</span><span>GOALIE ADDS</span></div>
+ <div class="wk-section"><div class="wk-section-head"><b>01 / TEAMS TO STREAM</b><span>Most games first</span></div>${teamRows.length?tbl(['NHL Team','Games','Game days','Schedule / opponents'],teamRows):'<div class="empty">No remaining team games found for this week.</div>'}</div>
+ <div class="wk-section"><div class="wk-section-head"><b>02 / PLAYERS TO PICK UP</b><span>Projected fantasy points · your scoring</span></div>${pRows.length?tbl(['# / Player','Pos','Team','Games','Pts / game','Week projection'],pRows):'<div class="empty">No skater recommendations. Upload a free-agent screenshot to filter available players.</div>'}</div>
+ <div class="wk-section"><div class="wk-section-head"><b>03 / GOALIES TO PICK UP</b><span>Schedule volume + opponent scoring</span></div>${gRows.length?tbl(['# / Goalie','Team','Games','Save %','Opp. goals / game','Stream rating'],gRows):'<div class="empty">No goalie recommendations found for this week.</div>'}</div>
+ </div>
+ <p class="small" style="margin-top:12px">Player photos and team logos are included where NHL image data is available. Projections are estimates from season-to-date stats and scheduled games, not confirmed goalie starts. Check Yahoo availability and starting-goalie news before making an add.</p>`;
+};
 
 /* ---------- Pickups ---------- */
 R.pickups=async()=>{
