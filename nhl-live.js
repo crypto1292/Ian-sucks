@@ -39,7 +39,7 @@
    ]);
    const games=score.games||[],reports=inj?injuriesFrom(inj):[],articles=news?newsFrom(news):[];
    const teams=[...new Set(games.flatMap(g=>[g.awayTeam?.abbrev,g.homeTeam?.abbrev]).filter(Boolean))];
-   const relevant=reports.filter(x=>!x.team||teams.some(t=>t===x.team||String(x.team).toUpperCase().includes(t)));
+   const relevant=reports.filter(x=>!x.team||teams.some(t=>t===x.team||String(x.team).toUpperCase().includes(t)||[games.find(g=>g.homeTeam?.abbrev===t)?.homeTeam?.name?.default,games.find(g=>g.awayTeam?.abbrev===t)?.awayTeam?.name?.default].some(n=>n&&String(x.team).toLowerCase().includes(n.toLowerCase()))));
    let scratch=[];
    const boxes=await Promise.all(games.map(g=>g.id?get(nhl+'gamecenter/'+g.id+'/boxscore').catch(()=>null):null));
    boxes.forEach((b,i)=>{
@@ -78,12 +78,12 @@
      const teamId=z.eventOwnerTeamId,team=(teamId===g.homeTeam?.id?g.homeTeam?.abbrev:teamId===g.awayTeam?.id?g.awayTeam?.abbrev:scorer.team)||'';
      const assists=ids.map(id=>players[id]||{id,name:'Assist credited',team});
      const scoreText=(z.awayScore!==undefined&&z.homeScore!==undefined)?z.awayScore+' – '+z.homeScore:(g.awayTeam?.score??'—')+' – '+(g.homeTeam?.score??'—');
-     const base={key:g.id+'-'+(p.eventId||p.id||when),when,period,team,game:(g.awayTeam?.abbrev||'')+' @ '+(g.homeTeam?.abbrev||''),scoreText,state:gameStatus(g)};
+     const mm=String(when).match(/^(\d+):(\d{2})$/),order=(Date.parse(g.startTimeUTC||'')||0)+((Math.max(1,Number(period)||1)-1)*20+(mm?Number(mm[1])+Number(mm[2])/60:0))*60000;const base={order,key:g.id+'-'+(p.eventId||p.id||when),when,period,team,game:(g.awayTeam?.abbrev||'')+' @ '+(g.homeTeam?.abbrev||''),scoreText,state:gameStatus(g)};
      events.push({...base,kind:'GOAL',player:scorer});
      assists.forEach((a,i)=>events.push({...base,key:base.key+'-a'+i,kind:'ASSIST',player:a}));
     });
    });
-   events.sort((a,b)=>String(b.key).localeCompare(String(a.key)));
+   events.sort((a,b)=>b.order-a.order);
    const cards=events.map(e=>{const photo=playerPhoto(e.player,e.player.team||e.team);return '<article class="achievement-card '+(e.kind==='GOAL'?'goal-card':'assist-card')+'"><div class="achievement-top"><span class="achievement-stamp">'+(e.kind==='GOAL'?'🏆 GOAL UNLOCKED':'⚡ ASSIST UNLOCKED')+'</span><span class="achievement-time">'+esc(e.period?'P'+e.period:'')+(e.when?' · '+esc(e.when):'')+'</span></div><div class="achievement-main">'+(photo?'<img class="achievement-photo" src="'+esc(photo)+'" alt="'+esc(e.player.name)+'" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="achievement-photo placeholder">🏒</div>')+'<div class="achievement-player"><b>'+esc(e.player.name)+'</b><span>'+esc(e.player.team||e.team)+' · '+e.kind+'</span><small>'+esc(e.game)+'</small></div><div class="achievement-score">'+esc(e.scoreText)+'</div></div><div class="achievement-bottom"><span>'+esc(e.state==='LIVE'?'LIVE GAME':'GAME UPDATE')+'</span><span>ACHIEVEMENT #'+esc(String(e.key).slice(-5))+'</span></div></article>'}).join('');
    root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Every goal and credited assist becomes its own unlock card.</p></div><button class="btn secondary" id="refreshGoals">↻ Refresh</button></div><div class="nhl-livebar"><span><i></i> GAME EVENTS</span><b>'+events.length+' scoring moments today</b><span>Last checked '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' · Auto-refresh 30 sec</span></div><div class="achievement-feed">'+(cards||'<div class="empty">'+(games.length?'No goals or assists recorded yet today. New scoring events will appear automatically.':'No NHL games scheduled today.')+'</div>')+'</div><p class="nhl-footnote">Scoring events are taken from NHL play-by-play. Player photos are served from NHL player assets. Official scoring can be corrected after a goal.</p>';
    $('refreshGoals')?.addEventListener('click',renderGoals);lastGoals=Date.now();
