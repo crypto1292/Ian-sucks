@@ -472,14 +472,39 @@ const share=p=>Math.min(1,p.gp/Math.max(1,D.tgp[p.t]||p.gp));
 const lineup=pl=>{const sl=league.slots,pk=(g,n)=>pl.filter(x=>x.p.pos===g).sort((a,b)=>b.v-a.v).slice(0,n);return[...pk('C',sl.C),...pk('W',sl.W),...pk('D',sl.D),...pk('G',sl.G)]};
 const wrapP=p=>({p,v:proj(p,0),g:gms(p.t,0).length});
 R.matchup=async()=>{
- let ne=null;try{await load()}catch(e){ne=e}const m=JSON.parse(K.getItem('ihq_mu')||'{}'),box='width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit';
- const up=(k,t,h)=>`<div class="card span-6"><h3>${t}</h3><p class="small">${h}</p><input type="file" accept="image/*" multiple onchange="IHQ.up('${k}',this)"><div id="mu${k}Msg" class="small" style="margin:8px 0"></div><textarea id="mu${k==='Opp'?'Txt':k}" rows="5" style="${box}" placeholder="Players show up here after you upload. You can also type names.">${esc(k==='My'?roster.map(r=>r.name).join(', '):m.txt||'')}</textarea></div>`;
- $('matchup').innerHTML=`<h2>Matchup</h2><p class="sub">Upload a screenshot of your team and one of your opponent's team (the Yahoo matchup page works too). Your league scoring is already loaded. You'll get a win chance and who to pick up.</p>${ne?err(ne):''}
- <div class="grid">${up('My','1. My team','Screenshot of your roster.')}${up('Opp','2. Opponent team','Screenshot of their roster or the matchup page.')}
- <div class="card span-12"><h3>3. This week's score</h3><div class="formgrid"><div class="field"><label>My score so far</label><input id="muMe" type="number" step=".01" value="${m.ms??''}"></div><div class="field"><label>Opponent score so far</label><input id="muOpp" type="number" step=".01" value="${m.os??''}"></div></div>
- <input id="muG" type="hidden" value="${m.gs??0}"><div class="field"><label>Goalie starts my team has had so far this week</label><input id="muG2" type="number" min="0" value="${m.gs??0}" onchange="$('muG').value=this.value"></div><button class="btn" onclick="IHQ.mu()">Compare and recommend</button></div></div><div id="muOut" style="margin-top:14px"></div>`;
+ let ne=null;try{await load()}catch(e){ne=e}
+ const monday=()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+ const week=monday(),all=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=all[week]||{},box='width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit';
+ $('matchup').innerHTML=`<h2>Weekly Matchup</h2><p class="sub">Build your team and your opponent's team by searching for NHL players. Your team stays saved in My Team, and each week's opponent roster is saved separately.</p>${ne?err(ne):''}
+ <div class="card" style="margin-bottom:14px"><b>WEEK OF ${week}</b><p class="small">Opponent rosters are stored separately for each week.</p></div>
+ <div class="grid">
+ <div class="card span-6"><h3>YOUR TEAM <span class="pill">${roster.length} players</span></h3><p class="small">Search and add players to your roster.</p><input id="muSearchMy" style="${box}" placeholder="Search player name…" oninput="IHQ.searchMu('My',this.value)"><div id="muResultsMy"></div><div id="muMyList" style="margin-top:12px">${IHQ.renderMuList('My')}</div><button class="btn secondary" style="margin-top:10px" onclick="showTab('team')">Manage full roster</button></div>
+ <div class="card span-6"><h3>OPPONENT'S TEAM <span class="pill">${(m.opponents||[]).length} players</span></h3><p class="small">Search and add the players on your opponent's roster.</p><input id="muSearchOpp" style="${box}" placeholder="Search player name…" oninput="IHQ.searchMu('Opp',this.value)"><div id="muResultsOpp"></div><div id="muOppList" style="margin-top:12px">${IHQ.renderMuList('Opp')}</div></div>
+ <div class="card span-12"><h3>WEEKLY SCORE</h3><div class="formgrid"><div class="field"><label>Your score so far</label><input id="muMe" type="number" step=".01" value="${m.ms??''}"></div><div class="field"><label>Opponent score so far</label><input id="muOpp" type="number" step=".01" value="${m.os??''}"></div></div><div class="field"><label>Goalie starts your team has had</label><input id="muG2" type="number" min="0" value="${m.gs??0}"></div><button class="btn" onclick="IHQ.mu()">Compare matchup</button></div></div><div id="muOut" style="margin-top:14px"></div>`;
  if(m.ms!=null&&!ne)IHQ.mu();
 };
+IHQ.renderMuList=side=>{
+ const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
+ const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{},list=side==='My'?roster:(m.opponents||[]);
+ return list.length?'<div style="display:grid;gap:6px">'+list.map((p,i)=>'<div class="recommend"><span><b>'+esc(p.name||p.n)+'</b> <span class="small">'+esc(p.pos||'')+' · '+esc(p.team||'')+'</span></span><button class="btn danger" style="padding:5px 9px" onclick="IHQ.removeMu(\''+side+'\','+i+')">Remove</button></div>').join('')+'</div>':'<div class="empty">No players added yet. Search above to build this roster.</div>';
+};
+IHQ.searchMu=(side,q)=>{
+ const out=$('muResults'+side);if(!out)return;if(!q||q.trim().length<2){out.innerHTML='';return}
+ const all=[...(D?.sk||[]),...(D?.gl||[])],n=N(q),hits=all.filter(p=>N(p.n).includes(n)).sort((a,b)=>(N(a.n).startsWith(n)?-1:0)-(N(b.n).startsWith(n)?-1:0)||b.gp-a.gp).slice(0,8);
+ out.innerHTML=hits.length?'<div style="display:grid;gap:5px;margin-top:8px">'+hits.map(p=>'<button class="btn secondary" style="display:flex;justify-content:space-between;text-align:left;width:100%" onclick="IHQ.addMu(\''+side+'\','+p.id+')"><span>'+esc(p.n)+' <small>· '+esc(p.t)+'</small></span><span class="pill">'+esc(p.pos)+'</span></button>').join('')+'</div>':'<div class="small" style="padding:8px">No players found. Try another spelling.</div>';
+};
+IHQ.addMu=(side,id)=>{
+ const p=[...(D?.sk||[]),...(D?.gl||[])].find(x=>String(x.id)===String(id));if(!p)return;
+ if(side==='My'){if(roster.some(x=>N(x.name)===N(p.n)))return;roster.push({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t});persist()}
+ else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{opponents:[]};m.opponents=m.opponents||[];if(m.opponents.some(x=>N(x.name)===N(p.n)))return;m.opponents.push({name:p.n,pos:p.pos,team:p.t});a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
+ $('muResults'+side).innerHTML='';$('muSearch'+side).value='';$('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
+};
+IHQ.removeMu=(side,index)=>{
+ if(side==='My'){const p=roster[index];if(p)removePlayer(p.id)}
+ else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{};m.opponents=(m.opponents||[]).filter((x,i)=>i!==index);a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
+ $('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
+};
+
 const mkWorker=async Tz=>{const L=['https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int','https://tessdata.projectnaptha.com/4.0.0'];let e;for(const langPath of L){try{return await Tz.createWorker('eng',1,{langPath})}catch(x){e=x}}throw new Error('Text reader could not start ('+((e&&e.message)||e)+'). Check your connection and try again.')};
 const nhl=()=>load().catch(e=>{throw new Error("Couldn't load NHL player data ("+e.message+"). Check your connection and try again.")});
 let STG='';
@@ -494,13 +519,11 @@ IHQ.up=async(k,inp)=>{
 };
 IHQ.mu=()=>{
  if(!D){$('muOut').innerHTML='<div class="callout">Loading NHL stats…</div>';load().then(IHQ.mu).catch(e=>$('muOut').innerHTML=err(e));return}
- const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG').value||0,txt=$('muTxt').value,my=$('muMy').value;
- const ns=a=>a.map(x=>C(x)).sort().join('|');
- if(my.trim()){const m0=my.split(/[\n,]+/).map(findP).filter(Boolean);if(m0.length&&ns(m0.map(p=>p.n))!==ns(roster.map(r=>(me(r)||{n:r.name}).n)))applyList('roster',m0)}
- K.setItem('ihq_mu',JSON.stringify({ms,os,gs,txt}));
+ const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG2').value||0,week=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
+ const weeks=JSON.parse(K.getItem('ihq_matchups')||'{}'),weekData=weeks[week]||{};weekData.ms=ms;weekData.os=os;weekData.gs=gs;weeks[week]=weekData;K.setItem('ihq_matchups',JSON.stringify(weeks));
  const all=[...D.sk,...D.gl],left=Math.max(0,league.addLimit-league.addsUsed);
  const fp=n=>{const t=N(n);let c=all.filter(p=>N(p.n)===t);if(!c.length)c=all.filter(p=>N(p.n).endsWith(' '+t));return c.sort((a,b)=>b.gp-a.gp)[0]};
- const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(wrapP),opn=txt.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean).map(findP).filter(Boolean).map(wrapP);
+ const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(wrapP),opn=(weekData.opponents||[]).map(x=>findP(x.name)).filter(Boolean).map(wrapP);
  const ml=lineup(mine),ol=lineup(opn),sum=l=>l.reduce((a,x)=>a+x.v,0),mp=sum(ml),op=opn.length?sum(ol):mp*.95;
  const diff=ms+mp-(os+op),sd=Math.max(10,.22*Math.sqrt(mp*mp+op*op)),wp=Math.round(50*(1+erf(diff/sd/Math.SQRT2)));
  const st=wp>=65?'ahead':wp<=35?'behind':'close';
