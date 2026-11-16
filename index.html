@@ -341,6 +341,7 @@ R.lineup=async()=>{
 const oldShow=window.showTab;
 window.showTab=id=>{oldShow(id);if(R[id]){$(id).innerHTML='<div class="empty">Loading…</div>';R[id]().catch(e=>$(id).innerHTML=err(e))}};
 const redraw=()=>{const a=document.querySelector('.page:not(.hidden)');if(a&&R[a.id])R[a.id]().catch(e=>a.innerHTML=err(e))};
+setInterval(()=>{const a=document.querySelector('.page:not(.hidden)');if(a&&a.id==='lineup'&&!document.hidden)R.lineup().catch(e=>a.innerHTML=err(e))},45000);
 window.IHQ={pos:v=>{S.pos=v;redraw()},wk:v=>{S.wk=+v;redraw()},lineupToggle:k=>lineupToggle(k),lineupAuto:()=>{lineupAuto();R.lineup()},lineupDate:v=>{lineupDate=v;R.lineup()},lineupRefresh:()=>R.lineup()};
 
 /* ---------- Weekly Pickups spreadsheet ---------- */
