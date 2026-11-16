@@ -280,18 +280,18 @@ R.weekly=async()=>{
  const games=t=>gms(t,w);
  const teams=Object.keys(D.sch[w]||{}).map(t=>({t,g:games(t)})).filter(x=>x.g.length).sort((a,b)=>b.g.length-a.g.length||a.t.localeCompare(b.t));
  const teamRows=teams.map(x=>{const days=[...new Set(x.g.map(g=>dayNames[new Date(g.date+'T12:00:00').getDay()]))];const opp=x.g.map(g=>(g.home?'vs ':'@ ')+g.opp).join(' · ');return['<b>'+logo(x.t)+x.t+'</b>','<b>'+x.g.length+'</b>',days.join(', '),opp]});
- const skaters=pool(D.sk).map(p=>({p,g:games(p.t).length,v:proj(p,w)})).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,20);
- const goalies=pool(D.gl).map(p=>{const g=games(p.t),o=g.length?g.reduce((a,x)=>a+(D.off[x.opp]||3),0)/g.length:3;return{p,g:g.length,o,v:proj(p,w)*(3/o)}}).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,15);
+ const skaters=pool(D.sk).map(p=>({p,g:games(p.t).length,v:proj(p,w)})).filter(x=>x.g).sort((a,b)=>b.v-a.v);
+ const goalies=pool(D.gl).map(p=>{const g=games(p.t),o=g.length?g.reduce((a,x)=>a+(D.off[x.opp]||3),0)/g.length:3;return{p,g:g.length,o,v:proj(p,w)*(3/o)}}).filter(x=>x.g).sort((a,b)=>b.v-a.v);
  const pRows=skaters.map((x,i)=>['<span class="wk-rank">'+(i+1)+'</span><b>'+nm(x.p)+'</b>',x.p.pos,'<b>'+logo(x.p.t)+x.p.t+'</b>',x.g,ppg(x.p).toFixed(2),'<b>'+x.v.toFixed(1)+'</b>']);
  const gRows=goalies.map((x,i)=>['<span class="wk-rank">'+(i+1)+'</span><b>'+nm(x.p)+'</b>','<b>'+logo(x.p.t)+x.p.t+'</b>',x.g,x.p.sv?x.p.sv.toFixed(3):'—',x.o.toFixed(2),'<b>'+x.v.toFixed(1)+'</b>']);
- $('weekly').innerHTML=`<h2>Weekly Pickups</h2><p class="sub">Your weekly waiver-wire worksheet. Ranked using your league scoring, this week's NHL schedule and the free-agent list you uploaded (if available).</p>
+ $('weekly').innerHTML=`<h2>Weekly Pickups</h2><p class="sub">Your complete weekly waiver-wire worksheet. Every matching free agent with games this week is listed in projected-value order, using your league scoring and NHL schedule.</p>
  <div class="btnrow" style="margin:0 0 14px;align-items:center">${wkSel()} ${availNote()}</div>
  <div class="wk-sheet">
  <div class="wk-sheet-title"><span>IAN SUCKS · WEEKLY STREAMING WORKSHEET</span><span>${w?'NEXT WEEK':'THIS WEEK · GAMES REMAINING'}</span></div>
  <div class="wk-sheet-tabs"><span class="active">TEAM SCHEDULE</span><span>SKATER ADDS</span><span>GOALIE ADDS</span></div>
  <div class="wk-section"><div class="wk-section-head"><b>01 / TEAMS TO STREAM</b><span>Most games first</span></div>${teamRows.length?tbl(['NHL Team','Games','Game days','Schedule / opponents'],teamRows):'<div class="empty">No remaining team games found for this week.</div>'}</div>
- <div class="wk-section"><div class="wk-section-head"><b>02 / PLAYERS TO PICK UP</b><span>Projected fantasy points · your scoring</span></div>${pRows.length?tbl(['# / Player','Pos','Team','Games','Pts / game','Week projection'],pRows):'<div class="empty">No skater recommendations. Upload a free-agent screenshot to filter available players.</div>'}</div>
- <div class="wk-section"><div class="wk-section-head"><b>03 / GOALIES TO PICK UP</b><span>Schedule volume + opponent scoring</span></div>${gRows.length?tbl(['# / Goalie','Team','Games','Save %','Opp. goals / game','Stream rating'],gRows):'<div class="empty">No goalie recommendations found for this week.</div>'}</div>
+ <div class="wk-section"><div class="wk-section-head"><b>02 / PLAYERS TO PICK UP</b><span>FULL RANKED FREE-AGENT LIST · your scoring</span></div>${pRows.length?tbl(['# / Player','Pos','Team','Games','Pts / game','Week projection'],pRows):'<div class="empty">No skater recommendations. Upload a free-agent screenshot to filter available players.</div>'}</div>
+ <div class="wk-section"><div class="wk-section-head"><b>03 / GOALIES TO PICK UP</b><span>FULL RANKED GOALIE FREE-AGENT LIST · schedule + opponent scoring</span></div>${gRows.length?tbl(['# / Goalie','Team','Games','Save %','Opp. goals / game','Stream rating'],gRows):'<div class="empty">No goalie recommendations found for this week.</div>'}</div>
  </div>
  <p class="small" style="margin-top:12px">Player photos and team logos are included where NHL image data is available. Projections are estimates from season-to-date stats and scheduled games, not confirmed goalie starts. Check Yahoo availability and starting-goalie news before making an add.</p>`;
 };
