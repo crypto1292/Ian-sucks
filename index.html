@@ -481,7 +481,7 @@ R.matchup=async()=>{
  <div class="card span-6"><h3>YOUR TEAM <span class="pill">${roster.length} players</span></h3><p class="small">Search and add players to your roster.</p><input id="muSearchMy" style="${box}" placeholder="Search player name…" oninput="IHQ.searchMu('My',this.value)"><div id="muResultsMy"></div><div id="muMyList" style="margin-top:12px">${IHQ.renderMuList('My')}</div><button class="btn secondary" style="margin-top:10px" onclick="showTab('team')">Manage full roster</button></div>
  <div class="card span-6"><h3>OPPONENT'S TEAM <span class="pill">${(m.opponents||[]).length} players</span></h3><p class="small">Search and add the players on your opponent's roster.</p><input id="muSearchOpp" style="${box}" placeholder="Search player name…" oninput="IHQ.searchMu('Opp',this.value)"><div id="muResultsOpp"></div><div id="muOppList" style="margin-top:12px">${IHQ.renderMuList('Opp')}</div></div>
  <div class="card span-12"><h3>WEEKLY SCORE</h3><div class="formgrid"><div class="field"><label>Your score so far</label><input id="muMe" type="number" step=".01" value="${m.ms??''}"></div><div class="field"><label>Opponent score so far</label><input id="muOpp" type="number" step=".01" value="${m.os??''}"></div></div><div class="field"><label>Goalie starts your team has had</label><input id="muG2" type="number" min="0" value="${m.gs??0}"></div><button class="btn" onclick="IHQ.mu()">Compare matchup</button></div></div><div id="muOut" style="margin-top:14px"></div>`;
- if(m.ms!=null&&!ne)IHQ.mu();
+ if(!ne)IHQ.mu();
 };
 IHQ.renderMuList=side=>{
  const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
@@ -498,11 +498,15 @@ IHQ.addMu=(side,id)=>{
  if(side==='My'){if(roster.some(x=>N(x.name)===N(p.n)))return;roster.push({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t});persist()}
  else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{opponents:[]};m.opponents=m.opponents||[];if(m.opponents.some(x=>N(x.name)===N(p.n)))return;m.opponents.push({name:p.n,pos:p.pos,team:p.t});a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
  $('muResults'+side).innerHTML='';$('muSearch'+side).value='';$('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
+ const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
+ if($('muOut'))IHQ.mu();
 };
 IHQ.removeMu=(side,index)=>{
  if(side==='My'){const p=roster[index];if(p)removePlayer(p.id)}
  else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{};m.opponents=(m.opponents||[]).filter((x,i)=>i!==index);a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
  $('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
+ const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
+ if($('muOut'))IHQ.mu();
 };
 
 const mkWorker=async Tz=>{const L=['https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int','https://tessdata.projectnaptha.com/4.0.0'];let e;for(const langPath of L){try{return await Tz.createWorker('eng',1,{langPath})}catch(x){e=x}}throw new Error('Text reader could not start ('+((e&&e.message)||e)+'). Check your connection and try again.')};
