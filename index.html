@@ -108,6 +108,25 @@ label{font-size:11px;font-weight:800;letter-spacing:.04em;color:#a8bbd0}
 .wk-rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:7px;border-radius:5px;background:#1a3551;color:#9ddfff;font-size:10px;font-weight:900}
 .wk-sheet .scoreteam img{vertical-align:middle}
 @media(max-width:760px){.wk-sheet-title{font-size:9px;padding:10px}.wk-section{padding:11px 8px}.wk-section-head{align-items:flex-start;flex-direction:column;gap:2px}.wk-sheet table{font-size:11px}.wk-sheet td{padding:8px 7px}}
+
+/* LIVE DAILY LINEUP */
+.lineup-board{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:13px}
+.lineup-panel{grid-column:span 6;background:linear-gradient(150deg,#132943,#0b192b);border:1px solid #2d4967;border-radius:15px;padding:14px;min-width:0}
+.lineup-player{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #29415b}
+.lineup-player:last-child{border-bottom:0}
+.lineup-player .lp-info{flex:1;min-width:0}
+.lineup-player .lp-name{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lineup-player .lp-meta{font-size:11px;color:#9fb2c9}
+.lineup-state{font-size:10px;font-weight:900;letter-spacing:.04em;color:#9ddfff}
+.lineup-state.live{color:#ff929b}.lineup-state.final{color:#91a6bd}.lineup-state.soon{color:#a9eaff}
+.lineup-toggle{border:1px solid #3a5c7c;background:#1a3551;color:#bfeaff;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:900;white-space:nowrap}
+.lineup-toggle.on{background:#124538;border-color:#2c9b79;color:#9ff3d2}
+.lineup-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:13px}
+.lineup-counts{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 15px}
+.lineup-counts span{background:#112b43;border:1px solid #31516e;border-radius:8px;padding:6px 9px;font-size:11px;color:#c8eaff}
+.lineup-counts b{color:#fff}
+@media(max-width:760px){.lineup-panel{grid-column:span 12}.lineup-player{gap:7px}.lineup-toggle{padding:7px 8px}}
+
 </style>
 </head>
 <body>
@@ -264,14 +283,65 @@ const availNote=()=>S.avail.length?`<span class="tag">Using your ${S.avail.lengt
 
 /* ---------- tabs ---------- */
 const nav=$('nav'),main=document.querySelector('main');
-[['matchup','Matchup'],['next','Next Week'],['weekly','Weekly Pickups'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
+[['matchup','Matchup'],['lineup','Set Lineup'],['next','Next Week'],['weekly','Weekly Pickups'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
  const b=document.createElement('button');b.dataset.tab=id;b.textContent=l;b.onclick=()=>showTab(id);nav.appendChild(b);
  const s=document.createElement('section');s.id=id;s.className='page hidden';main.appendChild(s)});
+
 const R={};
+let lineupDate=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0');
+let lineupPick={};try{lineupPick=JSON.parse(K.getItem('ihq_lineup')||'{}')}catch(e){}
+const lineupId=(r,i)=>String(r.id??('player-'+kk(r.name)));
+const lineupSave=()=>K.setItem('ihq_lineup',JSON.stringify(lineupPick));
+const lineupActive=()=>new Set(lineupPick[lineupDate]||[]);
+const lineupSlots=()=>({C:+(league.slots.C||0),W:+(league.slots.W||0),D:+(league.slots.D||0),G:+(league.slots.G||0)});
+const lineupAuto=()=>{
+ const caps=lineupSlots(),used={C:0,W:0,D:0,G:0},ids=[];
+ roster.forEach((r,i)=>{const p=me(r),pos=p?.pos||r.pos||'W',k=lineupId(r,i),slot=pos==='G'?'G':pos==='D'?'D':pos==='C'?'C':'W';if(!r.ir&&used[slot]<caps[slot]){ids.push(k);used[slot]++}});
+ lineupPick[lineupDate]=ids;lineupSave();
+};
+const lineupToggle=k=>{
+ const ids=new Set(lineupPick[lineupDate]||[]),ridx=roster.findIndex((r,i)=>lineupId(r,i)===k),r=roster[ridx];if(!r)return;
+ if(ids.has(k))ids.delete(k);else{
+  if(r.ir){alert('This player is marked IR. Move them off IR before starting them.');return}
+  const p=me(r),pos=p?.pos||r.pos||'W',slot=pos==='G'?'G':pos==='D'?'D':pos==='C'?'C':'W',cap=lineupSlots()[slot]||0;
+  const count=[...ids].filter(id=>{const j=roster.findIndex((x,i)=>lineupId(x,i)===id);if(j<0)return false;const q=me(roster[j]),z=q?.pos||roster[j].pos||'W';return(z==='G'?'G':z==='D'?'D':z==='C'?'C':'W')===slot}).length;
+  if(count>=cap){alert('You already have all '+cap+' '+slot+' starting slot(s) filled. Bench one first.');return}
+  ids.add(k);
+ }
+ lineupPick[lineupDate]=[...ids];lineupSave();R.lineup();
+};
+const lineupScore=async date=>{
+ const j=await J('https://api-web.nhle.com/v1/score/'+date);
+ return Array.isArray(j.games)?j.games:[];
+};
+R.lineup=async()=>{
+ await load();
+ const date=lineupDate,active=()=>lineupActive(),dayLabel=new Date(date+'T12:00:00').toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+ let games=[];try{games=await lineupScore(date)}catch(e){}
+ const gFor=t=>games.find(g=>g.awayTeam?.abbrev===t||g.homeTeam?.abbrev===t);
+ const gameText=t=>{
+  const g=gFor(t);if(!g)return '<span class="lineup-state">NO GAME</span>';
+  const a=g.awayTeam||{},h=g.homeTeam||{},s=String(g.gameState||'').toUpperCase(),live=['LIVE','CRIT','IN_PROGRESS'].includes(s),final=['FINAL','OFF'].includes(s);
+  if(live)return '<span class="lineup-state live">● LIVE '+(a.abbrev===t?(a.score??0)+'–'+(h.score??0):(h.score??0)+'–'+(a.score??0))+' · '+esc(g.clock?.timeRemaining||'')+'</span>';
+  if(final)return '<span class="lineup-state final">FINAL '+(a.abbrev===t?(a.score??0)+'–'+(h.score??0):(h.score??0)+'–'+(a.score??0))+'</span>';
+  const tm=g.startTimeUTC?new Date(g.startTimeUTC).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'SCHEDULED';
+  return '<span class="lineup-state soon">TODAY · '+esc(tm)+'</span>';
+ };
+ if(!lineupPick[date])lineupAuto();
+ const ids=active(),caps=lineupSlots(),count={C:0,W:0,D:0,G:0};
+ roster.forEach((r,i)=>{if(ids.has(lineupId(r,i))){const p=me(r),z=p?.pos||r.pos||'W',k=z==='G'?'G':z==='D'?'D':z==='C'?'C':'W';count[k]++}});
+ const groups=[['C','CENTRES'],['W','WINGERS'],['D','DEFENCE'],['G','GOALIES']];
+ const renderGroup=(slot,label)=>{
+  const list=roster.map((r,i)=>({r,i,p:me(r),key:lineupId(r,i)})).filter(x=>{const z=x.p?.pos||x.r.pos||'W';return(slot==='W'?(z!=='G'&&z!=='D'&&z!=='C'):z===slot)});
+  return '<div class="lineup-panel"><div class="lineup-top"><b>'+label+'</b><span class="small">'+count[slot]+' / '+caps[slot]+' starting</span></div>'+(list.length?list.map(x=>{const t=x.p?.t||x.r.team||'',on=ids.has(x.key);return '<div class="lineup-player"><div class="lp-info"><div class="lp-name">'+(x.p?nm(x.p):esc(x.r.name))+'</div><div class="lp-meta">'+esc(t||'Team unknown')+' · '+(x.p?.pos||x.r.pos||slot)+(x.r.ir?' · IR':'')+'</div><div>'+gameText(t)+'</div></div><button class="lineup-toggle '+(on?'on':'')+'" onclick="IHQ.lineupToggle(\''+esc(x.key)+'\')">'+(on?'STARTING':'BENCH')+'</button></div>'}).join(''):'<div class="empty">No '+label.toLowerCase()+' on your saved roster.</div>')+'</div>';
+ };
+ $('lineup').innerHTML='<h2>Set Your Lineup</h2><p class="sub">Choose who starts today. Your selections save on this device. NHL game status refreshes automatically while this section is open.</p><div class="card"><div class="lineup-top"><div><b>'+esc(dayLabel)+'</b><div class="small">Daily starters · NHL scoreboard '+(games.length?'updated':'not available')+'</div></div><input type="date" value="'+date+'" onchange="IHQ.lineupDate(this.value)" style="max-width:175px"></div><div class="lineup-counts">'+groups.map(([k,l])=>'<span>'+l+': <b>'+count[k]+'/'+caps[k]+'</b></span>').join('')+'</div><div class="btnrow"><button class="btn" onclick="IHQ.lineupAuto()">Auto-fill starting slots</button><button class="btn secondary" onclick="IHQ.lineupRefresh()">Refresh live status</button></div><p class="small" style="margin:10px 0 0">Auto-fill uses your saved roster order and league slot counts. You can change any starter manually.</p></div><div class="lineup-board" style="margin-top:14px">'+groups.map(([k,l])=>renderGroup(k,l)).join('')+'</div><div class="callout" style="margin-top:13px">Goalie starts are selected by you here. Live game status and scores update from the NHL scoreboard; this page does not claim a goalie is confirmed as the NHL starter unless that information is explicitly available.</div>';
+};
+
 const oldShow=window.showTab;
 window.showTab=id=>{oldShow(id);if(R[id]){$(id).innerHTML='<div class="empty">Loading…</div>';R[id]().catch(e=>$(id).innerHTML=err(e))}};
 const redraw=()=>{const a=document.querySelector('.page:not(.hidden)');if(a&&R[a.id])R[a.id]().catch(e=>a.innerHTML=err(e))};
-window.IHQ={pos:v=>{S.pos=v;redraw()},wk:v=>{S.wk=+v;redraw()}};
+window.IHQ={pos:v=>{S.pos=v;redraw()},wk:v=>{S.wk=+v;redraw()},lineupToggle:k=>lineupToggle(k),lineupAuto:()=>{lineupAuto();R.lineup()},lineupDate:v=>{lineupDate=v;R.lineup()},lineupRefresh:()=>R.lineup()};
 
 /* ---------- Weekly Pickups spreadsheet ---------- */
 R.weekly=async()=>{
