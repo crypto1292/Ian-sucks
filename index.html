@@ -247,7 +247,7 @@ try{const saved=JSON.parse(localStorage.getItem('ihq_league')||'{}');league={...
 if(localStorage.getItem('ihq_cfg')!=='v2'){league={...league,teams:10,addLimit:4,goalieMinimum:3,scoring:{...scoringDefaults},slots:{...slotDefaults}};if(!roster.length)roster=[{name:'Sebastian Aho',pos:'C'},{name:'Nathan MacKinnon',pos:'C'},{name:'Mark Stone',pos:'W'},{name:'Andrei Svechnikov',pos:'W'},{name:'Jake Guentzel',pos:'W'},{name:'Sam Reinhart',pos:'W'},{name:'Adrian Kempe',pos:'W'},{name:'Filip Forsberg',pos:'W'},{name:'Evgeni Malkin',pos:'C'},{name:'Logan Cooley',pos:'C'},{name:'Evan Bouchard',pos:'D'},{name:'Luke Hughes',pos:'D'},{name:'Vince Dunn',pos:'D'},{name:'Filip Hronek',pos:'D'},{name:'Jake Oettinger',pos:'G'},{name:'Stuart Skinner',pos:'G'},{name:'Mathew Barzal',pos:'C',ir:1},{name:'Filip Gustavsson',pos:'G',ir:1}].map(p=>({id:Date.now()+Math.random(),team:'',...p}));localStorage.setItem('ihq_league',JSON.stringify(league));localStorage.setItem('ihq_roster',JSON.stringify(roster));localStorage.setItem('ihq_cfg','v2')}
 const $=id=>document.getElementById(id);
 function persist(){localStorage.setItem('ihq_league',JSON.stringify(league));localStorage.setItem('ihq_roster',JSON.stringify(roster));refresh()}
-function showTab(id){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));$(id).classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='team')renderRoster()}
+function showTab(id){const page=$(id);if(!page)return;document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));page.classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='team')renderRoster();window.dispatchEvent(new CustomEvent('ihq:tabchange',{detail:id}))}
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 function buildFields(){
 $('scoringFields').innerHTML=Object.entries(league.scoring).map(([k,v])=>`<div class="field"><label>${k} points</label><input type="number" step=".01" id="score_${k}" value="${v}"></div>`).join('');
@@ -272,7 +272,8 @@ buildFields();loadLeague();refresh();renderRoster();
 /* Fantasy Hockey IQ features */
 (()=>{
 const $=id=>document.getElementById(id),K=localStorage;
-const S={avail:JSON.parse(K.getItem('ihq_avail')||'[]'),pos:'ALL',wk:0};
+const readJSON=(key,fallback)=>{try{const raw=K.getItem(key);return raw===null?fallback:JSON.parse(raw)}catch(e){return fallback}};
+const S={avail:readJSON('ihq_avail',[]),pos:'ALL',wk:0};
 const N=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f.'’-]/g,'').toLowerCase().trim();
 const SE=encodeURIComponent('seasonId=20262027 and gameTypeId=2');
 let PM=0;
@@ -290,7 +291,7 @@ const last=t=>(t||'').split(',').pop().trim();
 
 async function load(){
  if(D)return D;
- try{await load0();try{K.setItem('ihq_D',JSON.stringify({t:Date.now(),D}))}catch(x){}}catch(e){const c=K.getItem('ihq_D');if(!c)throw e;D=JSON.parse(c).D}
+ try{await load0();try{K.setItem('ihq_D',JSON.stringify({t:Date.now(),D}))}catch(x){}}catch(e){const c=K.getItem('ihq_D');if(!c)throw e;D=readJSON('ihq_D',{}).D}
  return D;
 }
 async function viaClub(st,get){
@@ -410,7 +411,7 @@ const wrapP=p=>({p,v:proj(p,0),g:gms(p.t,0).length});
 R.matchup=async()=>{
  let ne=null;try{await load()}catch(e){ne=e}
  const monday=()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
- const week=monday(),all=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=all[week]||{},box='width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit';
+ const week=monday(),all=readJSON('ihq_matchups',{}),m=all[week]||{},box='width:100%;background:#09182a;border:1px solid #304762;border-radius:8px;color:var(--text);padding:10px;font:inherit';
  $('matchup').innerHTML=`<h2>Weekly Matchup</h2><p class="sub">Week of ${week}</p>${ne?err(ne):''}
  <div style="display:grid;grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);gap:5px;align-items:stretch">
  <div style="min-width:0;background:linear-gradient(160deg,#102943,#091522);border:1px solid #31516d;border-radius:12px;padding:9px 7px;box-shadow:inset 0 1px 0 #ffffff12"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px"><b style="font-size:12px;letter-spacing:1px;color:#d9eaff">YOUR SIDE</b><span class="pill" id="muMyCount">${roster.length}</span></div><input id="muSearchMy" style="${box};font-size:12px;padding:8px" placeholder="Search player" oninput="IHQ.searchMu('My',this.value)"><div id="muResultsMy"></div><div id="muMyList" style="margin-top:9px">${IHQ.renderMuList('My')}</div><button class="btn secondary" style="margin-top:8px;width:100%;font-size:11px;padding:7px" onclick="showTab('team')">Edit roster</button></div>
@@ -424,7 +425,7 @@ R.matchup=async()=>{
 };
 IHQ.muInjuries=IHQ.muInjuries||{};
 IHQ.loadMuInjuries=async(force=false)=>{
- const key='ihq_nhl_injuries_v1',cached=JSON.parse(K.getItem(key)||'null');
+ const key='ihq_nhl_injuries_v1',cached=readJSON(key,null);
  if(!force&&cached&&Date.now()-cached.at<10*60*1000){IHQ.muInjuries=cached.data||{};return}
  try{
   const res=await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/injuries',{cache:'no-store'});
@@ -596,7 +597,7 @@ function matchP(text){
 let X=null,LT='roster';
 const applyList=(type,m)=>{
  if(type==='roster'){roster=m.map(p=>({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t,...(p.ir?{ir:1}:{})}));persist();renderRoster()}
- else if(type==='opp'){const u=JSON.parse(K.getItem('ihq_mu')||'{}');u.txt=m.map(p=>p.n).join(', ');K.setItem('ihq_mu',JSON.stringify(u))}
+ else if(type==='opp'){const u=readJSON('ihq_mu',{});u.txt=m.map(p=>p.n).join(', ');K.setItem('ihq_mu',JSON.stringify(u))}
  else{S.avail=m.map(p=>p.n);K.setItem('ihq_avail',JSON.stringify(S.avail))}};
 const show=(type,m,text)=>{
  const lbl={roster:'your team',opp:"your opponent's team",avail:'your free-agent list'}[type];
@@ -623,14 +624,11 @@ $('readBtn').onclick=async()=>{
  }catch(e){o.innerHTML=`<div class="callout">Problem${STG?' while '+STG:''}: ${esc((e&&e.message)||String(e))}</div>`}
 };
 /* ---------- Dynamic tool-page loader ---------- */
-const oldShow=window.showTab;
-window.showTab=id=>{
- oldShow(id);
- if(R[id]){
-  const target=$(id);
-  if(target){target.innerHTML='<div class="empty">Loading…</div>';Promise.resolve().then(()=>R[id]()).catch(e=>{target.innerHTML=typeof err==='function'?err(e):'<div class="callout">Could not load this section: '+esc(e?.message||e)+'</div>'})}
- }
-};
+window.addEventListener('ihq:tabchange',event=>{
+ const id=event.detail;if(!R[id])return;const target=$(id);if(!target)return;
+ target.innerHTML='<div class="empty">Loading…</div>';
+ Promise.resolve().then(()=>R[id]()).catch(e=>{target.innerHTML='<div class="callout">Could not load this section: '+esc(e?.message||e)+'</div>'});
+});
 /* ---------- Simpler layout ---------- */
 (()=>{
  const sec=['team','league','import','tools','streaming','schedule','coach'];
@@ -648,37 +646,7 @@ window.showTab=id=>{
  const T=[['matchup','Beat this week\'s opponent','Upload both teams, get a win chance and who to add'],['next','Plan next week','Best schedule and best pickup overall'],['pickups','Best pickups right now','Top players ranked with your scoring']];
  dg.insertAdjacentHTML('afterbegin',T.map(([id,t,d])=>`<button class="card span-6" style="text-align:left;color:var(--text);width:100%;border-color:#3b5776" onclick="showTab('${id}')"><div style="font-size:20px;font-weight:800">${t}</div><div class="small" style="margin-top:4px">${d}</div></button>`).join(''));
 })();
-/* ---------- Genie logo ---------- */
-(()=>{
- const img=document.querySelector('.hero-art img');if(!img)return;
- const css=document.createElement('style');
- css.textContent=`.hero-art img{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;touch-action:manipulation;transition:filter .3s}
-.hero-art img.rub{animation:wob .7s;filter:drop-shadow(0 0 24px #b388ff) drop-shadow(0 12px 24px #0008)}
-@keyframes wob{0%,100%{transform:rotate(0)}20%{transform:rotate(-4deg) scale(1.03)}40%{transform:rotate(4deg) scale(1.06)}60%{transform:rotate(-3deg) scale(1.03)}80%{transform:rotate(3deg)}}
-.gb{margin:12px auto 0;max-width:340px;background:#1d1b3a;border:1px solid #7c5cd6;color:#efe9ff;border-radius:14px;padding:11px 14px;font-size:15px;font-weight:700;text-align:center;box-shadow:0 0 18px #7c5cd655}
-.spark{position:absolute;pointer-events:none;font-size:22px;animation:rise 1.3s forwards}
-@keyframes rise{from{opacity:1;transform:translateY(0) scale(.6)}to{opacity:0;transform:translateY(-90px) scale(1.5) rotate(50deg)}}`;
- document.head.appendChild(css);
- const art=img.parentElement;art.style.position='relative';
- art.insertAdjacentHTML('beforeend','<div class="gb" id="genieBubble">🧞 Rub my head for a hockey chirp!</div>');
- const bub=document.getElementById('genieBubble');
- const C=["Your goalie lets in goals like it's his goddamn job.", "That lineup is dogshit and you know it.", "Your power play is a goddamn rumor.", "You drafted with your heart, and your heart can't skate, dumbass.", "Your D-men couldn't find the net with a map and a flashlight.", "Holy shit, your bench has more talent than your top line.", "You check the waiver wire like a dog checks the door: constantly, and nobody's coming.", "Your team scores like it's scared of the damn net.", "Wake the hell up and start someone who plays tonight.", "That's not a lineup, it's a cry for help.", "Calling that a plan is bullshit and you know it.", "Streaming goalies blind? It shows, ya donkey.", "Your opponent saw your roster and laughed their ass off.", "Hell of a roster. Emphasis on hell.", "Rub my head one more time and I'll bench your best guy, smartass.", "Ian drafts like he's picking players out of a hat. A wet hat. In the dark.", "Ian's team is so bad they named the app after him.", "Ian couldn't win this league with a time machine and the final standings.", "Ian starts guys on bye weeks, then blames the schedule. Classic Ian.", "Ian, buddy, the puck goes in the net. Do some goddamn research.", "Even Ian's bench is embarrassed to be on his roster.", "Smit's goalie has more holes than his excuses.", "Smit watched one highlight and called it scouting.", "Smit's lineup is held together with hope, tape, and bullshit.", "Smit says he's rebuilding. It's been three years, Smit.", "Smit would lose a one-man game against himself.", "Smit trades like he's drunk-texting the waiver wire.", "Josh sets his lineup blindfolded. Spoiler: he is.", "Josh talks big for a guy who keeps starting backup goalies.", "Josh's waiver strategy is panic-clicking and praying.", "Josh, it's hockey, not charades. Start the guys who actually score.", "Josh has never met a hat trick he didn't bench.", "Josh would trade a star for a bag of pucks and call it a steal.", "Ian, Smit, and Josh walk into a bar. Nobody wins. Not even in fantasy hockey.", "Ian, Smit, Josh: three guys, one brain cell, zero goalies who can stop a puck."];
- let deck=[];const DY=["Why the hell is {n} still on your roster? Hostage situation?", "{n} just called. He wants to know why you suck at this.", "Bold as shit to start {n} and expect points.", "Rub my head again and I'll tell {n} you think he's overrated.", "{n} is carrying your sorry ass and you never say thanks."].map(t=>n=>t.replace('{n}',n));const next=()=>{try{if(roster.length&&Math.random()<.3){const r=roster[Math.floor(Math.random()*roster.length)];return DY[Math.floor(Math.random()*DY.length)](r.name)}}catch(e){}if(!deck.length)deck=C.slice().sort(()=>Math.random()-.5);return deck.pop()};
- let last=0;
- const fire=()=>{
-  const n=Date.now();if(n-last<1200)return;last=n;
-  bub.textContent='🧞 '+next();
-  img.classList.remove('rub');void img.offsetWidth;img.classList.add('rub');
-  for(let i=0;i<8;i++){const s=document.createElement('span');s.className='spark';s.textContent=['✨','💨','⭐','🪄'][i%4];s.style.left=(img.offsetLeft+Math.random()*img.offsetWidth)+'px';s.style.top=(img.offsetTop+Math.random()*img.offsetHeight*.5)+'px';art.appendChild(s);setTimeout(()=>s.remove(),1400)}
-  try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
- };
- let down=false,lx=0,dir=0,turns=0,t0=0;
- img.addEventListener('pointerdown',e=>{down=true;lx=e.clientX;dir=0;turns=0;t0=Date.now()});
- img.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-lx;if(Math.abs(dx)<6)return;const d=dx>0?1:-1;if(dir&&d!==dir)turns++;dir=d;lx=e.clientX;if(turns>=3&&Date.now()-t0<2500){turns=0;fire()}});
- ['pointerup','pointercancel','pointerleave'].forEach(ev=>img.addEventListener(ev,()=>{down=false}));
- img.addEventListener('click',fire);
- img.addEventListener('contextmenu',e=>e.preventDefault());
-})();
+
 })();
 
 </script>
@@ -697,5 +665,32 @@ let busy=false,timer=null;async function update(){if(busy||document.hidden)retur
 update();document.addEventListener('visibilitychange',()=>{if(!document.hidden){clearTimeout(timer);update()}});
 })();</script>
 <script src="nhl-live.js"></script>
+<script>
+/* ---------- Reliable genie logo chirps ---------- */
+(()=>{
+ const img=document.querySelector('.hero-art img');if(!img)return;
+ const art=img.parentElement;art.style.position='relative';
+ let bub=document.getElementById('genieBubble');
+ if(!bub){bub=document.createElement('div');bub.id='genieBubble';bub.className='gb';bub.textContent='🧞 Rub my head for a hockey chirp!';art.appendChild(bub)}
+ const css=document.createElement('style');
+ css.textContent='.hero-art img{cursor:grab;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}.hero-art img.rub{animation:genieWob .65s;filter:drop-shadow(0 0 24px #b388ff) drop-shadow(0 12px 24px #0008)}@keyframes genieWob{0%,100%{transform:rotate(0)}20%{transform:rotate(-5deg) scale(1.03)}40%{transform:rotate(5deg) scale(1.06)}60%{transform:rotate(-3deg) scale(1.03)}80%{transform:rotate(3deg)}}.gb{margin:12px auto 0;max-width:340px;background:#1d1b3a;border:1px solid #7c5cd6;color:#efe9ff;border-radius:14px;padding:11px 14px;font-size:15px;font-weight:700;text-align:center;box-shadow:0 0 18px #7c5cd655}.genie-spark{position:absolute;pointer-events:none;font-size:22px;animation:genieRise 1.2s forwards}@keyframes genieRise{to{opacity:0;transform:translateY(-80px) scale(1.4) rotate(35deg)}}';
+ document.head.appendChild(css);
+ const C=['Your goalie lets in goals like it is his goddamn job.','That lineup is dogshit and you know it.','Your power play is a goddamn rumour.','You drafted with your heart, and your heart cannot skate, dumbass.','Your D-men could not find the net with a map and a flashlight.','Your bench has more talent than your top line.','You check the waiver wire like a dog checks the door: constantly.','Your team scores like it is scared of the damn net.','Wake the hell up and start someone who plays tonight.','That is not a lineup, it is a cry for help.','Streaming goalies blind? It shows, ya donkey.','Your opponent saw your roster and laughed their ass off.','Hell of a roster. Emphasis on hell.','Ian drafts like he is picking players out of a hat. A wet hat.','Ian starts guys on bye weeks, then blames the schedule. Classic Ian.','Ian could not win this league with a time machine and the final standings.','Smit’s goalie has more holes than his excuses.','Josh sets his lineup blindfolded. Spoiler: he is.','Your waiver strategy is panic-clicking and praying.'];
+ let deck=[],last=0;
+ const chirp=()=>{
+  if(Date.now()-last<700)return;last=Date.now();let line;
+  try{if(typeof roster!=='undefined'&&roster.length&&Math.random()<.3){const p=roster[Math.floor(Math.random()*roster.length)];line=p.name+' is carrying your sorry ass and you never say thanks.'}}catch(e){}
+  if(!line){if(!deck.length)deck=C.slice().sort(()=>Math.random()-.5);line=deck.pop()}
+  bub.textContent='🧞 '+line;img.classList.remove('rub');void img.offsetWidth;img.classList.add('rub');
+  for(let i=0;i<7;i++){const sp=document.createElement('span');sp.className='genie-spark';sp.textContent=['✨','💨','⭐','🪄'][i%4];sp.style.left=(img.offsetLeft+Math.random()*img.offsetWidth)+'px';sp.style.top=(img.offsetTop+Math.random()*img.offsetHeight*.6)+'px';art.appendChild(sp);setTimeout(()=>sp.remove(),1300)}
+  try{if(navigator.vibrate)navigator.vibrate(35)}catch(e){}
+ };
+ let down=false,startX=0,lastX=0,changes=0,lastDir=0;
+ img.addEventListener('pointerdown',e=>{down=true;startX=lastX=e.clientX;changes=0;lastDir=0});
+ img.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-lastX;if(Math.abs(dx)<5)return;const dir=dx>0?1:-1;if(lastDir&&dir!==lastDir)changes++;lastDir=dir;lastX=e.clientX;if(changes>=3&&Math.abs(e.clientX-startX)>18){down=false;chirp()}});
+ ['pointerup','pointercancel','pointerleave'].forEach(ev=>img.addEventListener(ev,()=>{down=false}));
+ img.addEventListener('click',chirp);img.addEventListener('contextmenu',e=>e.preventDefault());
+})();
+</script>
 </body>
 </html>
