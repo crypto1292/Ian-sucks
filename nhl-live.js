@@ -89,40 +89,66 @@
  async function renderGoals(){
   if(goalBusy)return;goalBusy=true;const root=$('livefeed');if(!root){goalBusy=false;return}
   try{
-   const d=today().replace(/-/g,'');
-   const base='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/';
-   const score=await get(base+'scoreboard?dates='+d),games=score.events||[];
-   const summaries=await Promise.all(games.map(async g=>{try{return {g,data:await get(base+'summary?event='+encodeURIComponent(g.id))}}catch(e){return {g,data:null}}}));
+   const date=today(),score=await get(nhl+'score/'+date),games=score.games||[];
+   const summaries=await Promise.all(games.map(async g=>{
+    if(!g.id)return {g,pbp:null,box:null};
+    const [pbp,box]=await Promise.all([
+     get(nhl+'gamecenter/'+g.id+'/play-by-play').catch(()=>null),
+     get(nhl+'gamecenter/'+g.id+'/boxscore').catch(()=>null)
+    ]);
+    return {g,pbp,box};
+   }));
    const events=[];
-   summaries.forEach(({g,data})=>{
-    if(!data)return;
-    const sides=g.competitions?.[0]?.competitors||[],away=sides.find(x=>x.homeAway==='away')||{},home=sides.find(x=>x.homeAway==='home')||{};
-    const awayAbbr=away.team?.abbreviation||'AWY',homeAbbr=home.team?.abbreviation||'HOM';
-    const plays=data.scoringPlays||[];
-    plays.forEach((p,i)=>{
-     const textValue=String(p.text||p.shortText||'');
-     if(p.scoringPlay!==true&&!/\bgoal\b/i.test(textValue))return;
-     const athletes=p.athletes||[];
-     const people=athletes.map(a=>({name:a.athlete?.displayName||a.athlete?.fullName||'',id:a.athlete?.id||'',role:String(a.type?.text||a.type?.name||'').toLowerCase(),headshot:a.athlete?.headshot||''})).filter(a=>a.name);
-     const scorer=people.find(a=>/scor/i.test(a.role))||people[0]||{name:(textValue.match(/^(.+?)\s+scores/i)||[])[1]||'Goal scorer'};
-     const assists=people.filter(a=>a!==scorer&&(/assist/i.test(a.role)||people.length<=3));
-     const team=p.team?.abbreviation||scorer.team||awayAbbr;
-     const period=p.period?.number||p.period?.displayValue||'';
-     const when=p.clock?.displayValue||p.clock||'';
-     const scoreText=(p.awayScore!==undefined&&p.homeScore!==undefined)?p.awayScore+' – '+p.homeScore:(away.score??'0')+' – '+(home.score??'0');
-     const baseEvent={order:Date.parse(p.date||g.date||'')||0,key:g.id+'-'+(p.id||i),when,period,team,game:awayAbbr+' @ '+homeAbbr,scoreText,state:g.status?.type?.state==='in'?'LIVE':'FINAL'};
-     const obj=a=>({id:a.id,name:a.name,headshot:a.headshot,team});
-     events.push({...baseEvent,kind:'GOAL',player:obj(scorer)});
-     assists.forEach((a,j)=>events.push({...baseEvent,key:baseEvent.key+'-a'+j,kind:'ASSIST',player:obj(a)}));
+   summaries.forEach(({g,pbp,box})=>{
+    if(!pbp)return;
+    const away=g.awayTeam||{},home=g.homeTeam||{};
+    const playerNames={};
+    const sides=box?.playerByGameStats||{};
+    ['awayTeam','homeTeam'].forEach(side=>{
+     const groups=sides[side]||box?.[side]||{};
+     ['forwards','defense','goalies','scratches'].forEach(group=>(groups[group]||[]).forEach(p=>{
+      const id=Number(p.playerId||p.id);if(!id)return;
+      const first=p.firstName?.default||p.firstName||'',last=p.lastName?.default||p.lastName||'';
+      playerNames[id]={id,name:p.name?.default||p.name||[first,last].filter(Boolean).join(' ')||'NHL player',headshot:p.headshot||'',team:p.teamAbbrev||g[side]?.abbrev||''};
+     }));
+    });
+    const plays=Array.isArray(pbp.plays)?pbp.plays:Array.isArray(pbp.gameEvents)?pbp.gameEvents:[];
+    plays.forEach((play,index)=>{
+     const kind=String(play.typeDescKey||play.type||play.eventType||'').toLowerCase();
+     if(kind!=='goal'&&!kind.endsWith(':goal')&&!/\\bgoal\\b/i.test(String(play.details?.eventDescription||play.description||'')))return;
+     const d=play.details||play;
+     const scorerId=Number(d.scoringPlayerId||d.scorerPlayerId||d.playerId||0);
+     const a1=Number(d.assist1PlayerId||d.assistPlayerId||0),a2=Number(d.assist2PlayerId||0);
+     const owner=Number(d.eventOwnerTeamId||0);
+     const scoringTeam=(owner&&String(owner)===String(g.homeTeam?.id))?home:(owner&&String(owner)===String(g.awayTeam?.id))?away:null;
+     const teamAbbr=scoringTeam?.abbrev||d.eventOwnerTeamAbbrev||'';
+     const scorer=playerNames[scorerId]||{id:scorerId,name:d.scoringPlayerName||d.playerName||'Goal scorer',team:teamAbbr};
+     const pd=play.periodDescriptor||{};
+     const period=pd.number||play.period||'';
+     const when=play.timeInPeriod||play.time||'';
+     const scoreText=(d.awayScore!==undefined&&d.homeScore!==undefined)?d.awayScore+' – '+d.homeScore:(away.score??0)+' – '+(home.score??0);
+     const stamp=Date.parse(play.timeRemaining||play.date||g.startTimeUTC||'')||index;
+     const base={order:stamp,key:String(g.id)+'-'+String(play.eventId||play.eventId||index),when,period,team:teamAbbr,game:(away.abbrev||'AWY')+' @ '+(home.abbrev||'HOM'),scoreText,state:gameStatus(g)==='LIVE'?'LIVE':'FINAL'};
+     const make=(p)=>({id:p.id,name:p.name,headshot:p.headshot,team:p.team||teamAbbr});
+     events.push({...base,kind:'GOAL',player:make(scorer)});
+     [a1,a2].filter((id,i,arr)=>id&&id!==scorerId&&arr.indexOf(id)===i).forEach(id=>{
+      const assister=playerNames[id]||{id,name:'Assist credited',team:teamAbbr};
+      events.push({...base,key:base.key+'-assist-'+id,kind:'ASSIST',player:make(assister)});
+     });
     });
    });
    events.sort((a,b)=>b.order-a.order);
-   const cards=events.map(e=>{const photo=e.player.headshot||(e.player.id?'https://a.espncdn.com/i/headshots/nhl/players/full/'+e.player.id+'.png':'');return '<article class="achievement-card '+(e.kind==='GOAL'?'goal-card':'assist-card')+'"><div class="achievement-top"><span class="achievement-stamp">'+(e.kind==='GOAL'?'🏆 GOAL UNLOCKED':'⚡ ASSIST UNLOCKED')+'</span><span class="achievement-time">'+esc(e.period?'P'+e.period:'')+(e.when?' · '+esc(e.when):'')+'</span></div><div class="achievement-main">'+(photo?'<img class="achievement-photo" src="'+esc(photo)+'" alt="'+esc(e.player.name)+'" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="achievement-photo placeholder">🏒</div>')+'<div class="achievement-player"><b>'+esc(e.player.name)+'</b><span>'+esc(e.player.team||e.team)+' · '+e.kind+'</span><small>'+esc(e.game)+'</small></div><div class="achievement-score">'+esc(e.scoreText)+'</div></div><div class="achievement-bottom"><span>'+esc(e.state==='LIVE'?'LIVE GAME':'GAME UPDATE')+'</span><span>ACHIEVEMENT #'+esc(String(e.key).slice(-5))+'</span></div></article>'}).join('');
-   const failed=summaries.filter(x=>!x.data).length;
-   root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Every goal and credited assist becomes its own unlock card.</p></div><button class="btn secondary" id="refreshGoals">↻ Refresh</button></div><div class="nhl-livebar"><span><i></i> ESPN GAME EVENTS</span><b>'+events.length+' scoring moments today</b><span>Last checked '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' · Auto-refresh 30 sec</span></div><div class="achievement-feed">'+(cards||'<div class="empty">'+(games.length?'No goals or assists are posted for today yet.'+(failed?' Some game summaries are temporarily unavailable.':''):'No NHL games scheduled today.')+'</div>')+'</div><p class="nhl-footnote">Source: ESPN NHL scoreboard and game summaries. Official scoring may be corrected.</p>';
+   const cards=events.map(e=>{
+    const photo=e.player.headshot||(e.player.id?'https://assets.nhle.com/mugs/nhl/'+(new Date().getMonth()>=8?new Date().getFullYear():new Date().getFullYear()-1)+(new Date().getMonth()>=8?new Date().getFullYear()+1:new Date().getFullYear())+'/'+(e.player.team||e.team)+'/'+e.player.id+'.png':'');
+    return '<article class="achievement-card '+(e.kind==='GOAL'?'goal-card':'assist-card')+'"><div class="achievement-top"><span class="achievement-stamp">'+(e.kind==='GOAL'?'🏆 GOAL':'⚡ ASSIST')+'</span><span class="achievement-time">'+(e.period?'P'+esc(e.period):'')+(e.when?' · '+esc(e.when):'')+'</span></div><div class="achievement-main">'+(photo?'<img class="achievement-photo" src="'+esc(photo)+'" alt="'+esc(e.player.name)+'" loading="lazy" onerror="this.style.display=\\'none\\'">':'<div class="achievement-photo placeholder">🏒</div>')+'<div class="achievement-player"><b>'+esc(e.player.name)+'</b><span>'+esc(e.player.team||e.team)+' · '+e.kind+'</span><small>'+esc(e.game)+'</small></div><div class="achievement-score">'+esc(e.scoreText)+'</div></div><div class="achievement-bottom"><span>'+esc(e.state==='LIVE'?'LIVE GAME':'GAME UPDATE')+'</span><span>'+esc(e.key.slice(-8))+'</span></div></article>';
+   }).join('');
+   const failed=summaries.filter(x=>!x.pbp).length;
+   root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Every NHL goal and credited assist appears as its own card.</p></div><button class="btn secondary" id="refreshGoals">↻ Refresh</button></div><div class="nhl-livebar"><span><i></i> OFFICIAL NHL PLAY-BY-PLAY</span><b>'+events.length+' scoring moments today</b><span>Checked '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' · Refreshes every 30 sec</span></div><div class="achievement-feed">'+(cards||'<div class="empty">'+(games.length?'No goals or assists are posted yet.'+(failed?' '+failed+' game play-by-play feed(s) are temporarily unavailable.':''):'No NHL games scheduled today.')+'</div>')+'</div><p class="nhl-footnote">Source: NHL game-centre play-by-play and boxscores. Goal and assist credits follow the official NHL event feed.</p>';
    $('refreshGoals')?.addEventListener('click',renderGoals);lastGoals=Date.now();
-  }catch(e){root.innerHTML='<h2>Live Moments</h2><div class="callout">Could not load the ESPN NHL scoring feed.<br><small>'+esc(e.message)+'</small></div><button class="btn" id="refreshGoals">Try again</button>';$('refreshGoals')?.addEventListener('click',renderGoals)}
-  finally{goalBusy=false}
+  }catch(e){
+   root.innerHTML='<h2>Live Moments</h2><div class="callout">Could not load the official NHL scoring feed.<br><small>'+esc(e.message)+'</small></div><button class="btn" id="refreshGoals">Try again</button>';
+   $('refreshGoals')?.addEventListener('click',renderGoals);
+  }finally{goalBusy=false}
  }
  document.addEventListener('click',e=>{const b=e.target.closest('nav button[data-tab]');if(!b)return;if(b.dataset.tab==='nhlupdates')renderUpdates();if(b.dataset.tab==='livefeed')renderGoals()});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){const p=document.querySelector('.page:not(.hidden)');if(p?.id==='nhlupdates')renderUpdates();if(p?.id==='livefeed')renderGoals()}});
