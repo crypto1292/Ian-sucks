@@ -272,6 +272,7 @@ buildFields();loadLeague();refresh();renderRoster();
 /* Fantasy Hockey IQ features */
 (()=>{
 const $=id=>document.getElementById(id),K=localStorage;
+const IHQ=window.IHQ=window.IHQ||{};
 const readJSON=(key,fallback)=>{try{const raw=K.getItem(key);return raw===null?fallback:JSON.parse(raw)}catch(e){return fallback}};
 const S={avail:readJSON('ihq_avail',[]),pos:'ALL',wk:0};
 const N=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f.'’-]/g,'').toLowerCase().trim();
