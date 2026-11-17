@@ -666,7 +666,7 @@ function render(d,games){dateLabel.textContent=new Date(d+'T12:00:00').toLocaleD
 let busy=false,timer=null;async function update(){if(busy||document.hidden)return;busy=true;try{const x=await get();render(x.d,x.games)}catch(e){if(!bar.dataset.loaded){bar.className='scorebar-run static';bar.innerHTML='<div class="scoregame"><span class="scorestate">SCORE FEED UNAVAILABLE · RETRYING</span></div>';dateLabel.textContent='NHL scoreboard'}}finally{busy=false;clearTimeout(timer);timer=setTimeout(update,bar.dataset.loaded?45000:10000)}}
 update();document.addEventListener('visibilitychange',()=>{if(!document.hidden){clearTimeout(timer);update()}});
 })();</script>
-<script src="nhl-live.js?v=20261117-6"></script>
+<script src="nhl-live.js?v=20261117-7"></script>
 <script>
 /* ---------- Reliable genie logo chirps ---------- */
 (()=>{
