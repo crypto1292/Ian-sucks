@@ -484,17 +484,40 @@ R.matchup=async()=>{
  <div class="card" style="margin-top:10px"><h3>Score</h3><div class="formgrid"><div class="field"><label>You</label><input id="muMe" type="number" step=".01" value="${m.ms??''}" placeholder="0"></div><div class="field"><label>Opponent</label><input id="muOpp" type="number" step=".01" value="${m.os??''}" placeholder="0"></div></div><div class="field"><label>Your goalie starts</label><input id="muG2" type="number" min="0" value="${m.gs??0}"></div></div><div id="muOut" style="margin-top:12px"></div>`;
  ['muMe','muOpp','muG2'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',()=>IHQ.mu())});
  if(!ne)IHQ.mu();
+ IHQ.loadMuInjuries().then(()=>{['My','Opp'].forEach(side=>{const el=$('mu'+side+'List');if(el)el.innerHTML=IHQ.renderMuList(side)})});
+};
+IHQ.muInjuries=IHQ.muInjuries||{};
+IHQ.loadMuInjuries=async(force=false)=>{
+ const key='ihq_nhl_injuries_v1',cached=JSON.parse(K.getItem(key)||'null');
+ if(!force&&cached&&Date.now()-cached.at<10*60*1000){IHQ.muInjuries=cached.data||{};return}
+ try{
+  const res=await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/injuries',{cache:'no-store'});
+  if(!res.ok)throw Error('Injury feed unavailable');
+  const data=await res.json(),map={};
+  const walk=(node,team='')=>{
+   if(!node)return;if(Array.isArray(node)){node.forEach(v=>walk(v,team));return}if(typeof node!=='object')return;
+   const t=node.team?.displayName||node.team?.name||node.team?.abbreviation||node.teamName||team,athlete=node.athlete||node.player||node;
+   const name=athlete.displayName||athlete.fullName||athlete.name||node.displayName||node.playerName;
+   const raw=node.status?.type?.name||node.status?.description||node.status||node.injury?.status||node.type||'',comment=node.details?.detail||node.comment||node.shortComment||node.injury?.description||'';
+   if(typeof name==='string'&&name.length>2){const st=String(typeof raw==='object'?(raw.name||raw.description||''):raw),v=(st+' '+comment).toLowerCase();
+    if(/out|injur|reserve|day.to.day|questionable|doubtful|suspend|\\bir\\b|week.to.week|game.time/.test(v))
+     map[N(name)]=/injured reserve|\\bir-lt\\b|\\bltir\\b|\\bir\\b|reserve/.test(v)?'IR / OUT':/out|suspend/.test(v)?'OUT':/question|doubt|game.time/.test(v)?'QUESTIONABLE':'DAY-TO-DAY';
+   }
+   Object.keys(node).forEach(k=>{if(k!=='team')walk(node[k],t)});
+  };
+  walk(data);IHQ.muInjuries=map;K.setItem(key,JSON.stringify({at:Date.now(),data:map}));
+ }catch(e){if(cached?.data)IHQ.muInjuries=cached.data;else console.warn('NHL injury feed unavailable',e)}
 };
 IHQ.renderMuList=side=>{
  const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
- const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{},list=side==='My'?roster:(m.opponents||[]),all=[...(D?.sk||[]),...(D?.gl||[])],slots=league.slots||{C:2,W:4,D:4,G:2},groups={C:[],W:[],D:[],G:[],BN:[]};
+ const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{},list=side==='My'?roster:(m.opponents||[]),all=[...(D?.sk||[]),...(D?.gl||[])],slots=league.slots||{C:2,W:4,D:4,G:2},groups={INJ:[],C:[],W:[],D:[],G:[],BN:[]},inj=IHQ.muInjuries||{};
  const cap={C:+slots.C||2,W:+slots.W||4,D:+slots.D||4,G:+slots.G||2};
- const prepared=list.map((p,i)=>{const name=p.name||p.n||'',found=all.find(x=>N(x.n)===N(name)),pos=String(found?.pos||p.pos||'').toUpperCase();let g=pos==='C'?'C':(['W','LW','RW','L','R'].includes(pos)?'W':pos==='D'?'D':pos==='G'?'G':'BN');return {p,i,name,found,pos,g}});
- prepared.forEach(x=>{if(x.g==='BN'||groups[x.g].length>=cap[x.g])x.g='BN';groups[x.g].push(x)});
- const colors={C:['#ef6464','#3b2028'],W:['#62a9ff','#1c3048'],D:['#b18aff','#302449'],G:['#62d6a0','#1d3b32'],BN:['#aab6c4','#293441']};
- const card=x=>{const {p,i,name,found,pos}=x,id=found?.id||p.id,team=found?.t||p.team||'',photo=id&&team?'https://assets.nhle.com/mugs/nhl/20252026/'+encodeURIComponent(team)+'/'+id+'.png':'';
- return '<div style="position:relative;min-width:0;text-align:center;background:#ffffff0b;border:1px solid #ffffff16;border-radius:9px;padding:7px 3px 6px"><button aria-label="Remove '+esc(name)+'" title="Remove player" onclick="IHQ.removeMu(\''+side+'\','+i+')" style="position:absolute;right:3px;top:3px;width:19px;height:19px;min-width:19px;padding:0;border:0;border-radius:50%;background:#ffffff20;color:#fff;font-size:13px;line-height:19px">×</button><img src="'+photo+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" style="width:48px;height:48px;object-fit:cover;object-position:top;border-radius:50%;background:#25384b;border:2px solid '+colors[x.g][0]+';margin:2px auto 6px" alt=""><div style="display:none;width:48px;height:48px;border-radius:50%;margin:2px auto 6px;background:#26394b;align-items:center;justify-content:center;font-size:20px">🏒</div><div style="font-size:10px;font-weight:800;line-height:1.2;overflow-wrap:anywhere">'+esc(name)+'</div><div style="font-size:9px;opacity:.7;margin-top:3px">'+esc(team)+' · '+esc(pos)+'</div></div>'};
- const sections=Object.keys(groups).filter(g=>groups[g].length).map(g=>'<section style="margin-top:9px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="width:5px;height:17px;border-radius:4px;background:'+colors[g][0]+'"></span><b style="font-size:10px;letter-spacing:1.1px;color:'+colors[g][0]+'">'+g+'</b><span style="font-size:9px;opacity:.55">'+groups[g].length+(g==='BN'?' bench':'')+'</span><span style="height:1px;flex:1;background:'+colors[g][0]+'35"></span></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">'+groups[g].map(card).join('')+'</div></section>').join('');
+ const prepared=list.map((p,i)=>{const name=p.name||p.n||'',found=all.find(x=>N(x.n)===N(name)),pos=String(found?.pos||p.pos||'').toUpperCase(),status=inj[N(name)]||null;let g=pos==='C'?'C':(['W','LW','RW','L','R'].includes(pos)?'W':pos==='D'?'D':pos==='G'?'G':'BN');return {p,i,name,found,pos,g,status}});
+ prepared.forEach(x=>{if(x.status){x.g='INJ';groups.INJ.push(x)}else{if(x.g==='BN'||groups[x.g].length>=cap[x.g])x.g='BN';groups[x.g].push(x)}});
+ const colors={INJ:['#ff7777','#49232b'],C:['#ef6464','#3b2028'],W:['#62a9ff','#1c3048'],D:['#b18aff','#302449'],G:['#62d6a0','#1d3b32'],BN:['#aab6c4','#293441']};
+ const card=x=>{const {p,i,name,found,pos,status}=x,id=found?.id||p.id,team=found?.t||p.team||'',photo=id&&team?'https://assets.nhle.com/mugs/nhl/20252026/'+encodeURIComponent(team)+'/'+id+'.png':'';
+ return '<div style="position:relative;min-width:0;text-align:center;background:#ffffff0b;border:1px solid '+(status?'#ff777755':'#ffffff16')+';border-radius:9px;padding:7px 3px 6px"><button aria-label="Remove '+esc(name)+'" title="Remove player" onclick="IHQ.removeMu(\\''+side+'\\','+i+')" style="position:absolute;right:3px;top:3px;width:19px;height:19px;min-width:19px;padding:0;border:0;border-radius:50%;background:#ffffff20;color:#fff;font-size:13px;line-height:19px">×</button><img src="'+photo+'" onerror="this.style.display=\\'none\\';this.nextElementSibling.style.display=\\'flex\\'" style="width:48px;height:48px;object-fit:cover;object-position:top;border-radius:50%;background:#25384b;border:2px solid '+colors[x.g][0]+';margin:2px auto 6px" alt=""><div style="display:none;width:48px;height:48px;border-radius:50%;margin:2px auto 6px;background:#26394b;align-items:center;justify-content:center;font-size:20px">🏒</div><div style="font-size:10px;font-weight:800;line-height:1.2;overflow-wrap:anywhere">'+esc(name)+'</div><div style="font-size:9px;opacity:.7;margin-top:3px">'+esc(team)+' · '+esc(pos)+'</div>'+(status?'<div style="font-size:8px;font-weight:900;color:#ff9292;margin-top:5px">'+esc(status)+'</div>':'')+'</div>'};
+ const sections=Object.keys(groups).filter(g=>groups[g].length).map(g=>'<section style="margin-top:9px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="width:5px;height:17px;border-radius:4px;background:'+colors[g][0]+'"></span><b style="font-size:10px;letter-spacing:1.1px;color:'+colors[g][0]+'">'+(g==='INJ'?'INJURED / OUT':g)+'</b><span style="font-size:9px;opacity:.55">'+groups[g].length+(g==='BN'?' bench':'')+'</span><span style="height:1px;flex:1;background:'+colors[g][0]+'35"></span></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">'+groups[g].map(card).join('')+'</div></section>').join('');
  return list.length?sections:'<div style="font-size:10px;opacity:.65;text-align:center;padding:13px 3px">Search to add players</div>';
 };
 IHQ.searchMu=(side,q)=>{
