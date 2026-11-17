@@ -247,7 +247,7 @@ try{const saved=JSON.parse(localStorage.getItem('ihq_league')||'{}');league={...
 if(localStorage.getItem('ihq_cfg')!=='v2'){league={...league,teams:10,addLimit:4,goalieMinimum:3,scoring:{...scoringDefaults},slots:{...slotDefaults}};if(!roster.length)roster=[{name:'Sebastian Aho',pos:'C'},{name:'Nathan MacKinnon',pos:'C'},{name:'Mark Stone',pos:'W'},{name:'Andrei Svechnikov',pos:'W'},{name:'Jake Guentzel',pos:'W'},{name:'Sam Reinhart',pos:'W'},{name:'Adrian Kempe',pos:'W'},{name:'Filip Forsberg',pos:'W'},{name:'Evgeni Malkin',pos:'C'},{name:'Logan Cooley',pos:'C'},{name:'Evan Bouchard',pos:'D'},{name:'Luke Hughes',pos:'D'},{name:'Vince Dunn',pos:'D'},{name:'Filip Hronek',pos:'D'},{name:'Jake Oettinger',pos:'G'},{name:'Stuart Skinner',pos:'G'},{name:'Mathew Barzal',pos:'C',ir:1},{name:'Filip Gustavsson',pos:'G',ir:1}].map(p=>({id:Date.now()+Math.random(),team:'',...p}));localStorage.setItem('ihq_league',JSON.stringify(league));localStorage.setItem('ihq_roster',JSON.stringify(roster));localStorage.setItem('ihq_cfg','v2')}
 const $=id=>document.getElementById(id);
 function persist(){localStorage.setItem('ihq_league',JSON.stringify(league));localStorage.setItem('ihq_roster',JSON.stringify(roster));refresh()}
-function showTab(id){const page=$(id);if(!page)return;document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));page.classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='team')renderRoster();window.dispatchEvent(new CustomEvent('ihq:tabchange',{detail:id}))}
+function showTab(id){const page=$(id);if(!page)return;document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));page.classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='team')renderRoster();window.dispatchEvent(new CustomEvent('ihq:tabchange',{detail:id}));if(id==='livefeed'&&typeof window.loadLiveMoments==='function')window.loadLiveMoments();if(id==='nhlupdates'&&typeof window.loadNhlUpdates==='function')window.loadNhlUpdates()}
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 function buildFields(){
 $('scoringFields').innerHTML=Object.entries(league.scoring).map(([k,v])=>`<div class="field"><label>${k} points</label><input type="number" step=".01" id="score_${k}" value="${v}"></div>`).join('');
@@ -666,7 +666,7 @@ function render(d,games){dateLabel.textContent=new Date(d+'T12:00:00').toLocaleD
 let busy=false,timer=null;async function update(){if(busy||document.hidden)return;busy=true;try{const x=await get();render(x.d,x.games)}catch(e){if(!bar.dataset.loaded){bar.className='scorebar-run static';bar.innerHTML='<div class="scoregame"><span class="scorestate">SCORE FEED UNAVAILABLE · RETRYING</span></div>';dateLabel.textContent='NHL scoreboard'}}finally{busy=false;clearTimeout(timer);timer=setTimeout(update,bar.dataset.loaded?45000:10000)}}
 update();document.addEventListener('visibilitychange',()=>{if(!document.hidden){clearTimeout(timer);update()}});
 })();</script>
-<script src="nhl-live.js?v=20261117-4"></script>
+<script src="nhl-live.js?v=20261117-5"></script>
 <script>
 /* ---------- Reliable genie logo chirps ---------- */
 (()=>{
