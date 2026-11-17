@@ -2,6 +2,7 @@
 (()=>{
  const $=id=>document.getElementById(id);
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const todayFromDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
  const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
  const fmtTime=s=>{if(!s)return '';const d=new Date(s);return isNaN(d)?s:d.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})};
  const get=async(url)=>{
@@ -88,11 +89,14 @@
  }
  async function renderGoals(){
   if(goalBusy)return;goalBusy=true;const root=$('livefeed');if(!root){goalBusy=false;return}
-  root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Connecting to the official NHL scoring feed…</p></div></div><div class="empty">Loading today’s goals and credited assists. This may take a few seconds.</div>';
+  root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Loading official scoring updates…</p></div></div><div class="empty">Checking today and the previous NHL game date for goals and assists.</div>';
   try{
-   const date=today(),score=await get(nhl+'score/'+date),games=score.games||[];
+   const date=today(),prevDate=(()=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()-1);return todayFromDate(d)})();
+   const scoreSets=await Promise.all([date,prevDate].map(async day=>({day,data:await get(nhl+'score/'+day).catch(()=>null)})));
+   const gameMap=new Map();
+   scoreSets.forEach(x=>(x.data?.games||[]).forEach(g=>{if(g.id)gameMap.set(String(g.id),{...g,_scoreDate:x.day})}));
+   const games=[...gameMap.values()];
    const summaries=await Promise.all(games.map(async g=>{
-    if(!g.id)return {g,pbp:null,box:null};
     const [pbp,box]=await Promise.all([
      get(nhl+'gamecenter/'+g.id+'/play-by-play').catch(()=>null),
      get(nhl+'gamecenter/'+g.id+'/boxscore').catch(()=>null)
@@ -102,55 +106,40 @@
    const events=[];
    summaries.forEach(({g,pbp,box})=>{
     if(!pbp)return;
-    const away=g.awayTeam||{},home=g.homeTeam||{};
-    const playerNames={};
+    const away=g.awayTeam||{},home=g.homeTeam||{},playerNames={};
+    const addPlayer=(id,p,team)=>{id=Number(id||p?.playerId||p?.id);if(!id)return;const first=p?.firstName?.default||p?.firstName||'',last=p?.lastName?.default||p?.lastName||'';playerNames[id]={id,name:p?.name?.default||p?.name||p?.fullName||[first,last].filter(Boolean).join(' ')||'NHL player',headshot:p?.headshot||'',team:p?.teamAbbrev||team||''}};
+    (pbp.rosterSpots||[]).forEach(p=>{const teamId=Number(p.teamId||0),team=teamId&&teamId===Number(home.id)?home.abbrev:teamId&&teamId===Number(away.id)?away.abbrev:p.teamAbbrev||'';addPlayer(p.playerId,p,team)});
     const sides=box?.playerByGameStats||{};
-    ['awayTeam','homeTeam'].forEach(side=>{
-     const groups=sides[side]||box?.[side]||{};
-     ['forwards','defense','goalies','scratches'].forEach(group=>(groups[group]||[]).forEach(p=>{
-      const id=Number(p.playerId||p.id);if(!id)return;
-      const first=p.firstName?.default||p.firstName||'',last=p.lastName?.default||p.lastName||'';
-      playerNames[id]={id,name:p.name?.default||p.name||[first,last].filter(Boolean).join(' ')||'NHL player',headshot:p.headshot||'',team:p.teamAbbrev||g[side]?.abbrev||''};
-     }));
-    });
+    ['awayTeam','homeTeam'].forEach(side=>{const groups=sides[side]||box?.[side]||{};['forwards','defense','goalies','scratches'].forEach(group=>(groups[group]||[]).forEach(p=>addPlayer(p.playerId||p.id,p,p.teamAbbrev||g[side]?.abbrev||'')))});
     const plays=Array.isArray(pbp.plays)?pbp.plays:Array.isArray(pbp.gameEvents)?pbp.gameEvents:[];
     plays.forEach((play,index)=>{
      const kind=String(play.typeDescKey||play.type||play.eventType||'').toLowerCase();
-     if(kind!=='goal'&&!kind.endsWith(':goal')&&!/\\bgoal\\b/i.test(String(play.details?.eventDescription||play.description||'')))return;
-     const d=play.details||play;
-     const scorerId=Number(d.scoringPlayerId||d.scorerPlayerId||d.playerId||0);
-     const a1=Number(d.assist1PlayerId||d.assistPlayerId||0),a2=Number(d.assist2PlayerId||0);
-     const owner=Number(d.eventOwnerTeamId||0);
-     const scoringTeam=(owner&&String(owner)===String(g.homeTeam?.id))?home:(owner&&String(owner)===String(g.awayTeam?.id))?away:null;
-     const teamAbbr=scoringTeam?.abbrev||d.eventOwnerTeamAbbrev||'';
+     if(kind!=='goal'&&!kind.endsWith(':goal'))return;
+     const d=play.details||play,scorerId=Number(d.scoringPlayerId||d.scorerPlayerId||d.playerId||0),a1=Number(d.assist1PlayerId||d.assistPlayerId||0),a2=Number(d.assist2PlayerId||0),owner=Number(d.eventOwnerTeamId||0);
+     const scoringTeam=owner&&owner===Number(home.id)?home:owner&&owner===Number(away.id)?away:null,teamAbbr=scoringTeam?.abbrev||'';
      const scorer=playerNames[scorerId]||{id:scorerId,name:d.scoringPlayerName||d.playerName||'Goal scorer',team:teamAbbr};
-     const pd=play.periodDescriptor||{};
-     const period=pd.number||play.period||'';
-     const when=play.timeInPeriod||play.time||'';
-     const scoreText=(d.awayScore!==undefined&&d.homeScore!==undefined)?d.awayScore+' – '+d.homeScore:(away.score??0)+' – '+(home.score??0);
-     const stamp=Date.parse(play.timeRemaining||play.date||g.startTimeUTC||'')||index;
-     const base={order:stamp,key:String(g.id)+'-'+String(play.eventId||play.eventId||index),when,period,team:teamAbbr,game:(away.abbrev||'AWY')+' @ '+(home.abbrev||'HOM'),scoreText,state:gameStatus(g)==='LIVE'?'LIVE':'FINAL'};
-     const make=(p)=>({id:p.id,name:p.name,headshot:p.headshot,team:p.team||teamAbbr});
+     const pd=play.periodDescriptor||{},period=pd.number||play.period||'',when=play.timeInPeriod||play.time||'';
+     const scoreText=d.awayScore!==undefined&&d.homeScore!==undefined?d.awayScore+' – '+d.homeScore:(away.score??0)+' – '+(home.score??0);
+     const base={order:Date.parse(g.startTimeUTC||'')+(index||0),key:String(g.id)+'-'+String(play.eventId||index),when,period,team:teamAbbr,game:(away.abbrev||'AWY')+' @ '+(home.abbrev||'HOM'),scoreText,state:gameStatus(g)==='LIVE'?'LIVE':'FINAL'};
+     const make=p=>({id:p.id,name:p.name,headshot:p.headshot,team:p.team||teamAbbr});
      events.push({...base,kind:'GOAL',player:make(scorer)});
-     [a1,a2].filter((id,i,arr)=>id&&id!==scorerId&&arr.indexOf(id)===i).forEach(id=>{
-      const assister=playerNames[id]||{id,name:'Assist credited',team:teamAbbr};
-      events.push({...base,key:base.key+'-assist-'+id,kind:'ASSIST',player:make(assister)});
-     });
+     [a1,a2].filter((id,i,arr)=>id&&id!==scorerId&&arr.indexOf(id)===i).forEach(id=>{const assister=playerNames[id]||{id,name:'Assist credited',team:teamAbbr};events.push({...base,key:base.key+'-assist-'+id,kind:'ASSIST',player:make(assister)})});
     });
    });
    events.sort((a,b)=>b.order-a.order);
    const cards=events.map(e=>{
     const photo=e.player.headshot||(e.player.id?'https://assets.nhle.com/mugs/nhl/'+(new Date().getMonth()>=8?new Date().getFullYear():new Date().getFullYear()-1)+(new Date().getMonth()>=8?new Date().getFullYear()+1:new Date().getFullYear())+'/'+(e.player.team||e.team)+'/'+e.player.id+'.png':'');
-    return '<article class="achievement-card '+(e.kind==='GOAL'?'goal-card':'assist-card')+'"><div class="achievement-top"><span class="achievement-stamp">'+(e.kind==='GOAL'?'🏆 GOAL':'⚡ ASSIST')+'</span><span class="achievement-time">'+(e.period?'P'+esc(e.period):'')+(e.when?' · '+esc(e.when):'')+'</span></div><div class="achievement-main">'+(photo?'<img class="achievement-photo" src="'+esc(photo)+'" alt="'+esc(e.player.name)+'" loading="lazy" onerror="this.style.display=\\'none\\'">':'<div class="achievement-photo placeholder">🏒</div>')+'<div class="achievement-player"><b>'+esc(e.player.name)+'</b><span>'+esc(e.player.team||e.team)+' · '+e.kind+'</span><small>'+esc(e.game)+'</small></div><div class="achievement-score">'+esc(e.scoreText)+'</div></div><div class="achievement-bottom"><span>'+esc(e.state==='LIVE'?'LIVE GAME':'GAME UPDATE')+'</span><span>'+esc(e.key.slice(-8))+'</span></div></article>';
+    return '<article class="achievement-card '+(e.kind==='GOAL'?'goal-card':'assist-card')+'"><div class="achievement-top"><span class="achievement-stamp">'+(e.kind==='GOAL'?'🏆 GOAL':'⚡ ASSIST')+'</span><span class="achievement-time">'+(e.period?'P'+esc(e.period):'')+(e.when?' · '+esc(e.when):'')+'</span></div><div class="achievement-main">'+(photo?'<img class="achievement-photo" src="'+esc(photo)+'" alt="'+esc(e.player.name)+'" loading="lazy">':'<div class="achievement-photo placeholder">🏒</div>')+'<div class="achievement-player"><b>'+esc(e.player.name)+'</b><span>'+esc(e.player.team||e.team)+' · '+e.kind+'</span><small>'+esc(e.game)+'</small></div><div class="achievement-score">'+esc(e.scoreText)+'</div></div><div class="achievement-bottom"><span>'+esc(e.state==='LIVE'?'LIVE GAME':'GAME UPDATE')+'</span><span>'+esc(e.key.slice(-8))+'</span></div></article>';
    }).join('');
    const failed=summaries.filter(x=>!x.pbp).length;
-   root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Every NHL goal and credited assist appears as its own card.</p></div><button class="btn secondary" id="refreshGoals">↻ Refresh</button></div><div class="nhl-livebar"><span><i></i> OFFICIAL NHL PLAY-BY-PLAY</span><b>'+events.length+' scoring moments today</b><span>Checked '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' · Refreshes every 30 sec</span></div><div class="achievement-feed">'+(cards||'<div class="empty">'+(games.length?'No goals or assists are posted yet.'+(failed?' '+failed+' game play-by-play feed(s) are temporarily unavailable.':''):'No NHL games scheduled today.')+'</div>')+'</div><p class="nhl-footnote">Source: NHL game-centre play-by-play and boxscores. Goal and assist credits follow the official NHL event feed.</p>';
+   root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Every NHL goal and credited assist appears as its own card.</p></div><button class="btn secondary" id="refreshGoals">↻ Refresh</button></div><div class="nhl-livebar"><span><i></i> OFFICIAL NHL PLAY-BY-PLAY</span><b>'+events.length+' scoring moments found</b><span>Today + previous game date · Checked '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'</span></div><div class="achievement-feed">'+(cards||'<div class="empty">'+(games.length?'No goals or assists are recorded in the NHL play-by-play yet.'+(failed?' '+failed+' game feed(s) could not be reached.':''):'No NHL games found for today or the previous date.')+'</div>')+'</div><p class="nhl-footnote">Source: official NHL game-centre play-by-play and roster data.</p>';
    $('refreshGoals')?.addEventListener('click',renderGoals);lastGoals=Date.now();
   }catch(e){
-   root.innerHTML='<h2>Live Moments</h2><div class="callout">Could not load the official NHL scoring feed.<br><small>'+esc(e.message)+'</small></div><button class="btn" id="refreshGoals">Try again</button>';
+   root.innerHTML='<h2>Live Moments</h2><div class="callout">Could not load NHL scoring updates.<br><small>'+esc(e.message)+'</small></div><button class="btn" id="refreshGoals">Try again</button>';
    $('refreshGoals')?.addEventListener('click',renderGoals);
   }finally{goalBusy=false}
  }
+
  window.addEventListener('ihq:tabchange',e=>{
   if(e.detail==='nhlupdates')renderUpdates();
   if(e.detail==='livefeed')renderGoals();
