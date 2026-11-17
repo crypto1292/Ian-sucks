@@ -406,7 +406,8 @@ R.schedule=async()=>{
 /* ---------- Matchup ---------- */
 const erf=x=>{const t=1/(1+.3275911*Math.abs(x)),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return x<0?-y:y};
 const share=p=>Math.min(1,p.gp/Math.max(1,D.tgp[p.t]||p.gp));
-const lineup=pl=>{const sl=league.slots,pk=(g,n)=>pl.filter(x=>x.p.pos===g).sort((a,b)=>b.v-a.v).slice(0,n);return[...pk('C',sl.C),...pk('W',sl.W),...pk('D',sl.D),...pk('G',sl.G)]};
+const posGroup=p=>{const v=String(p?.pos||'').toUpperCase();return v==='C'?'C':(['W','LW','RW','L','R'].includes(v)?'W':v==='D'?'D':v==='G'?'G':'BN')};
+const lineup=pl=>{const sl=league.slots,pk=(g,n)=>pl.filter(x=>posGroup(x.p)===g).sort((a,b)=>b.v-a.v).slice(0,n);return[...pk('C',sl.C),...pk('W',sl.W),...pk('D',sl.D),...pk('G',sl.G)]};
 const wrapP=p=>({p,v:proj(p,0),g:gms(p.t,0).length});
 R.matchup=async()=>{
  let ne=null;try{await load()}catch(e){ne=e}
@@ -447,7 +448,7 @@ IHQ.loadMuInjuries=async(force=false)=>{
 };
 IHQ.renderMuList=side=>{
  const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
- const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{},list=side==='My'?roster:(m.opponents||[]),all=[...(D?.sk||[]),...(D?.gl||[])],slots=league.slots||{C:2,W:4,D:4,G:2},groups={INJ:[],C:[],W:[],D:[],G:[],BN:[]},inj=IHQ.muInjuries||{};
+ const m=readJSON('ihq_matchups',{})[w]||{},list=side==='My'?roster:(m.opponents||[]),all=[...(D?.sk||[]),...(D?.gl||[])],slots=league.slots||{C:2,W:4,D:4,G:2},groups={INJ:[],C:[],W:[],D:[],G:[],BN:[]},inj=IHQ.muInjuries||{};
  const cap={C:+slots.C||2,W:+slots.W||4,D:+slots.D||4,G:+slots.G||2};
  const prepared=list.map((p,i)=>{const name=p.name||p.n||'',found=all.find(x=>N(x.n)===N(name)),pos=String(found?.pos||p.pos||'').toUpperCase(),status=inj[N(name)]||null;let g=pos==='C'?'C':(['W','LW','RW','L','R'].includes(pos)?'W':pos==='D'?'D':pos==='G'?'G':'BN');return {p,i,name,found,pos,g,status}});
  prepared.forEach(x=>{if(x.status){x.g='INJ';groups.INJ.push(x)}else{if(x.g==='BN'||groups[x.g].length>=cap[x.g])x.g='BN';groups[x.g].push(x)}});
@@ -465,16 +466,16 @@ IHQ.searchMu=(side,q)=>{
 IHQ.addMu=(side,id)=>{
  const p=[...(D?.sk||[]),...(D?.gl||[])].find(x=>String(x.id)===String(id));if(!p)return;
  if(side==='My'){if(roster.some(x=>N(x.name)===N(p.n)))return;roster.push({id:Date.now()+Math.random(),name:p.n,pos:p.pos,team:p.t});persist()}
- else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{opponents:[]};m.opponents=m.opponents||[];if(m.opponents.some(x=>N(x.name)===N(p.n)))return;m.opponents.push({name:p.n,pos:p.pos,team:p.t});a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
+ else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=readJSON('ihq_matchups',{}),m=a[w]||{opponents:[]};m.opponents=m.opponents||[];if(m.opponents.some(x=>N(x.name)===N(p.n)))return;m.opponents.push({name:p.n,pos:p.pos,team:p.t});a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
  $('muResults'+side).innerHTML='';$('muSearch'+side).value='';$('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
- const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
+ const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=readJSON('ihq_matchups',{})[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
  if($('muOut'))setTimeout(()=>{if($('muOut'))IHQ.mu()},80);
 };
 IHQ.removeMu=(side,index)=>{
  if(side==='My'){const p=roster[index];if(p)removePlayer(p.id)}
- else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=JSON.parse(K.getItem('ihq_matchups')||'{}'),m=a[w]||{};m.opponents=(m.opponents||[]).filter((x,i)=>i!==index);a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
+ else{const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const a=readJSON('ihq_matchups',{}),m=a[w]||{};m.opponents=(m.opponents||[]).filter((x,i)=>i!==index);a[w]=m;K.setItem('ihq_matchups',JSON.stringify(a))}
  $('mu'+side+'List').innerHTML=IHQ.renderMuList(side);
- const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=JSON.parse(K.getItem('ihq_matchups')||'{}')[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
+ const count=$('mu'+side+'Count');if(count){const w=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();const m=readJSON('ihq_matchups',{})[w]||{};count.textContent=side==='My'?roster.length:(m.opponents||[]).length;}
  if($('muOut'))setTimeout(()=>{if($('muOut'))IHQ.mu()},80);
 };
 
@@ -493,7 +494,7 @@ IHQ.up=async(k,inp)=>{
 IHQ.mu=()=>{
  if(!D){$('muOut').innerHTML='<div class="callout">Loading NHL stats…</div>';load().then(IHQ.mu).catch(e=>$('muOut').innerHTML=err(e));return}
  const ms=+$('muMe').value||0,os=+$('muOpp').value||0,gs=+$('muG2').value||0,week=(()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
- const weeks=JSON.parse(K.getItem('ihq_matchups')||'{}'),weekData=weeks[week]||{};weekData.ms=ms;weekData.os=os;weekData.gs=gs;weeks[week]=weekData;K.setItem('ihq_matchups',JSON.stringify(weeks));
+ const weeks=readJSON('ihq_matchups',{}),weekData=weeks[week]||{};weekData.ms=ms;weekData.os=os;weekData.gs=gs;weeks[week]=weekData;K.setItem('ihq_matchups',JSON.stringify(weeks));
  const all=[...D.sk,...D.gl],left=Math.max(0,league.addLimit-league.addsUsed);
  const fp=n=>{const t=N(n);let c=all.filter(p=>N(p.n)===t);if(!c.length)c=all.filter(p=>N(p.n).endsWith(' '+t));return c.sort((a,b)=>b.gp-a.gp)[0]};
  const mine=roster.filter(r=>!r.ir).map(me).filter(Boolean).map(wrapP),opn=(weekData.opponents||[]).map(x=>findP(x.name)).filter(Boolean).map(wrapP);
@@ -501,9 +502,9 @@ IHQ.mu=()=>{
  const diff=ms+mp-(os+op),sd=Math.max(10,.22*Math.sqrt(mp*mp+op*op)),wp=Math.round(50*(1+erf(diff/sd/Math.SQRT2)));
  const st=wp>=65?'ahead':wp<=35?'behind':'close';
  const say={ahead:`You're projected to <b>win</b>. Play it safe: fix any player with no games left and make sure you hit your goalie minimum. Don't chase risky streams.`,behind:`You're projected to <b>lose</b>. You need upside, so add the players with the most games left and the best scoring rate.`,close:`This one is <b>close</b>. Every point counts, so upgrade your weakest spots.`}[st];
- const grp=g=>[ml,ol].map(l=>l.filter(x=>x.p.pos===g).reduce((a,x)=>a+x.v,0).toFixed(1));
+ const grp=g=>[ml,ol].map(l=>l.filter(x=>posGroup(x.p)===g).reduce((a,x)=>a+x.v,0).toFixed(1));
  const cands=pool(D.sk).map(wrapP).sort((a,b)=>b.v-a.v),recs=[],used=new Set();
- ml.filter(x=>x.p.pos!=='G').sort((a,b)=>a.v-b.v).forEach(d=>{if(recs.length>=left||(st==='ahead'&&d.g>0))return;const a=cands.find(x=>!used.has(x.p.n)&&x.p.pos===d.p.pos&&x.v>d.v+(st==='ahead'?2:.5));if(a){used.add(a.p.n);recs.push([d,a])}});
+ ml.filter(x=>x.p.pos!=='G').sort((a,b)=>a.v-b.v).forEach(d=>{if(recs.length>=left||(st==='ahead'&&d.g>0))return;const a=cands.find(x=>!used.has(x.p.n)&&posGroup(x.p)===posGroup(d.p)&&x.v>d.v+(st==='ahead'?2:.5));if(a){used.add(a.p.n);recs.push([d,a])}});
  const exp=ml.filter(x=>x.p.pos==='G').reduce((a,x)=>a+x.g*share(x.p),0),pace=gs+exp,need=pace<league.goalieMinimum;
  const gc=pool(D.gl).map(p=>({p,g:gms(p.t,0).length,v:proj(p,0)})).filter(x=>x.g).sort((a,b)=>b.v-a.v).slice(0,2);
  const rl=recs.map(([d,a])=>`<div class="recommend"><span><b>Drop ${nm(d.p)}, add ${nm(a.p)}</b> (${esc(a.p.t)}, ${a.p.pos})<br><span class="small">${d.g?`${d.g} game${d.g>1?'s':''} left, about ${d.v.toFixed(1)} pts`:'no games left'} → ${a.g} games, about ${a.v.toFixed(1)} pts</span></span><span class="pill">+${(a.v-d.v).toFixed(1)}</span></div>`).join('');
