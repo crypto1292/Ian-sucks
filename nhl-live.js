@@ -150,7 +150,17 @@
    $('refreshGoals')?.addEventListener('click',renderGoals);
   }finally{goalBusy=false}
  }
- document.addEventListener('click',e=>{const b=e.target.closest('nav button[data-tab]');if(!b)return;if(b.dataset.tab==='nhlupdates')renderUpdates();if(b.dataset.tab==='livefeed')renderGoals()});
+ window.addEventListener('ihq:tabchange',e=>{
+  if(e.detail==='nhlupdates')renderUpdates();
+  if(e.detail==='livefeed')renderGoals();
+ });
+ document.addEventListener('click',e=>{
+  const b=e.target.closest('nav button[data-tab]');
+  if(!b)return;
+  if(b.dataset.tab==='nhlupdates')renderUpdates();
+  if(b.dataset.tab==='livefeed')renderGoals();
+ },true);
+ window.loadLiveMoments=renderGoals;
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){const p=document.querySelector('.page:not(.hidden)');if(p?.id==='nhlupdates')renderUpdates();if(p?.id==='livefeed')renderGoals()}});
  setInterval(()=>{const p=document.querySelector('.page:not(.hidden)');if(document.hidden)return;if(p?.id==='nhlupdates'&&Date.now()-lastUpdate>85000)renderUpdates();if(p?.id==='livefeed'&&Date.now()-lastGoals>25000)renderGoals()},15000);
 })();
