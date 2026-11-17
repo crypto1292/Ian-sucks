@@ -622,6 +622,15 @@ $('readBtn').onclick=async()=>{
   STG='matching players';o.textContent='Matching players…';const g=await getPlayers(text);applyList(type,g.m);show(type,g.m,text);if(g.note)o.insertAdjacentHTML('afterbegin',`<div class="callout">${g.note}</div>`);
  }catch(e){o.innerHTML=`<div class="callout">Problem${STG?' while '+STG:''}: ${esc((e&&e.message)||String(e))}</div>`}
 };
+/* ---------- Dynamic tool-page loader ---------- */
+const oldShow=window.showTab;
+window.showTab=id=>{
+ oldShow(id);
+ if(R[id]){
+  const target=$(id);
+  if(target){target.innerHTML='<div class="empty">Loading…</div>';Promise.resolve().then(()=>R[id]()).catch(e=>{target.innerHTML=typeof err==='function'?err(e):'<div class="callout">Could not load this section: '+esc(e?.message||e)+'</div>'})}
+ }
+};
 /* ---------- Simpler layout ---------- */
 (()=>{
  const sec=['team','league','import','tools','streaming','schedule','coach'];
