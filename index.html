@@ -341,75 +341,11 @@ const availNote=()=>S.avail.length?`<span class="tag">Using your ${S.avail.lengt
 
 /* ---------- tabs ---------- */
 const nav=$('nav'),main=document.querySelector('main');
-[['matchup','Matchup'],['lineup','Set Lineup'],['next','Next Week'],['weekly','Weekly Pickups'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
+[['matchup','Matchup'],['next','Next Week'],['weekly','Weekly Pickups'],['pickups','Pickups'],['streaming','Streaming'],['schedule','Schedule'],['coach','Coach']].forEach(([id,l])=>{
  const b=document.createElement('button');b.dataset.tab=id;b.textContent=l;b.onclick=()=>showTab(id);nav.appendChild(b);
  const s=document.createElement('section');s.id=id;s.className='page hidden';main.appendChild(s)});
 
 const R={};
-let lineupDate=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0');
-let lineupPick={};try{lineupPick=JSON.parse(K.getItem('ihq_lineup')||'{}')}catch(e){}
-const lineupId=(r,i)=>String(r.id??('player-'+kk(r.name)));
-const lineupSave=()=>K.setItem('ihq_lineup',JSON.stringify(lineupPick));
-const lineupActive=()=>new Set(lineupPick[lineupDate]||[]);
-const lineupSlots=()=>({C:+(league.slots.C||0),W:+(league.slots.W||0),D:+(league.slots.D||0),G:+(league.slots.G||0)});
-const lineupAuto=()=>{
- const caps=lineupSlots(),used={C:0,W:0,D:0,G:0},ids=[];
- roster.forEach((r,i)=>{const p=me(r),pos=p?.pos||r.pos||'W',k=lineupId(r,i),slot=pos==='G'?'G':pos==='D'?'D':pos==='C'?'C':'W';if(!r.ir&&used[slot]<caps[slot]){ids.push(k);used[slot]++}});
- lineupPick[lineupDate]=ids;lineupSave();
-};
-const lineupToggle=k=>{
- const ids=new Set(lineupPick[lineupDate]||[]),ridx=roster.findIndex((r,i)=>lineupId(r,i)===k),r=roster[ridx];if(!r)return;
- if(ids.has(k))ids.delete(k);else{
-  if(r.ir){alert('This player is marked IR. Move them off IR before starting them.');return}
-  const p=me(r),pos=p?.pos||r.pos||'W',slot=pos==='G'?'G':pos==='D'?'D':pos==='C'?'C':'W',cap=lineupSlots()[slot]||0;
-  const count=[...ids].filter(id=>{const j=roster.findIndex((x,i)=>lineupId(x,i)===id);if(j<0)return false;const q=me(roster[j]),z=q?.pos||roster[j].pos||'W';return(z==='G'?'G':z==='D'?'D':z==='C'?'C':'W')===slot}).length;
-  if(count>=cap){alert('You already have all '+cap+' '+slot+' starting slot(s) filled. Bench one first.');return}
-  ids.add(k);
- }
- lineupPick[lineupDate]=[...ids];lineupSave();R.lineup();
-};
-/* DFO SOURCE CHECK — show source labels, never infer confirmation */
-const DFO={slugs:{ANA:'anaheim-ducks',BOS:'boston-bruins',BUF:'buffalo-sabres',CGY:'calgary-flames',CAR:'carolina-hurricanes',CHI:'chicago-blackhawks',COL:'colorado-avalanche',CBJ:'columbus-blue-jackets',DAL:'dallas-stars',DET:'detroit-red-wings',EDM:'edmonton-oilers',FLA:'florida-panthers',LAK:'los-angeles-kings',MIN:'minnesota-wild',MTL:'montreal-canadiens',NSH:'nashville-predators',NJD:'new-jersey-devils',NYI:'new-york-islanders',NYR:'new-york-rangers',OTT:'ottawa-senators',PHI:'philadelphia-flyers',PIT:'pittsburgh-penguins',SJS:'san-jose-sharks',SEA:'seattle-kraken',STL:'st-louis-blues',TBL:'tampa-bay-lightning',TOR:'toronto-maple-leafs',UTA:'utah-mammoth',VAN:'vancouver-canucks',VGK:'vegas-golden-knights',WSH:'washington-capitals',WPG:'winnipeg-jets'},cache:{},goalies:null,goalieAt:0,
-async html(url){let last;for(const mk of PX){try{const r=await fetch(mk(url),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const s=await r.text();if(s.length<1000)throw Error('Short response');return new DOMParser().parseFromString(s,'text/html')}catch(e){last=e}}throw last||Error('Source unavailable')},
-async team(t){if(this.cache[t]&&Date.now()-this.cache[t].at<300000)return this.cache[t].data;const slug=this.slugs[t];if(!slug)return null;const doc=await this.html('https://www.dailyfaceoff.com/teams/'+slug+'/line-combinations');const txt=doc.body?.innerText||'';const sections=[['Forwards','Defensive Pairings','F'],['Defensive Pairings','1st Powerplay Unit','D'],['1st Powerplay Unit','2nd Powerplay Unit','PP1'],['2nd Powerplay Unit','1st Penalty Kill Unit','PP2'],['Goalies','Injuries','G'],['Injuries','Badges:','OUT']];const out={names:{}};for(const [start,end,kind] of sections){const a=txt.indexOf(start);if(a<0)continue;const b=txt.indexOf(end,a+start.length),part=txt.slice(a+start.length,b<0?Math.min(txt.length,a+3500):b);[...doc.querySelectorAll('a')].map(el=>(el.textContent||'').trim()).filter(n=>n&&n.length>2&&part.includes(n)).forEach(n=>out.names[kk(n)]=kind)}this.cache[t]={at:Date.now(),data:out};return out},
-async goalieBoard(date){if(this.goalies&&this.goalies.date===date&&Date.now()-this.goalieAt<120000)return this.goalies;const doc=await this.html('https://www.dailyfaceoff.com/starting-goalies');const txt=doc.body?.innerText||'';const out={date,players:{}};[...doc.querySelectorAll('a')].map(a=>(a.textContent||'').trim()).filter(n=>n.length>4&&n.split(/\s+/).length>=2).forEach(n=>{const i=txt.indexOf(n);if(i<0)return;const near=txt.slice(i,i+260),m=near.match(/\b(Confirmed|Unconfirmed|Likely|Probable|Projected|Expected)\b/i);if(m)out.players[kk(n)]={status:m[1],detail:near.slice(0,120).replace(/\n+/g,' ').trim()}});this.goalies=out;this.goalieAt=Date.now();return out}
-};
-const sourceBadge=(kind,detail)=>'<div class="lineup-source '+(kind==='Confirmed'?'confirmed':kind==='Projected'||kind==='Probable'||kind==='Likely'?'projected':kind==='OUT'?'out':'unknown')+'">'+esc(kind)+(detail?' · '+esc(detail):'')+'</div>';
-const lineupScore=async date=>{
- const j=await J('https://api-web.nhle.com/v1/score/'+date);
- return Array.isArray(j.games)?j.games:[];
-};
-R.lineup=async()=>{
- await load();
- const date=lineupDate,active=()=>lineupActive(),dayLabel=new Date(date+'T12:00:00').toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
- let games=[];try{games=await lineupScore(date)}catch(e){}
- const gFor=t=>games.find(g=>g.awayTeam?.abbrev===t||g.homeTeam?.abbrev===t);
-const teamKeys=[...new Set(roster.map(r=>(me(r)?.t||r.team||'').toUpperCase()).filter(Boolean))];const nhlBoxes={};const gamesForMine=games.filter(g=>teamKeys.includes(g.homeTeam?.abbrev)||teamKeys.includes(g.awayTeam?.abbrev));await Promise.all(gamesForMine.map(async g=>{if(!g.id)return;try{const b=await J('https://api-web.nhle.com/v1/gamecenter/'+g.id+'/boxscore');nhlBoxes[g.id]=b.playerByGameStats||{}}catch(e){}}));const officialEntry=r=>{const p=me(r),id=Number(p?.id);if(!id)return null;for(const g of gamesForMine){const teams=b=>[b?.awayTeam,b?.homeTeam];const data=nhlBoxes[g.id]||{};for(const t of teams(data)){if(!t)continue;const all=[...(t.forwards||[]),...(t.defense||[]),...(t.goalies||[])],found=all.find(x=>Number(x.playerId)===id);if(found)return{entry:found,goalie:(t.goalies||[]).some(x=>Number(x.playerId)===id),game:g}}}return null};const dfoPairs=await Promise.all(teamKeys.map(async t=>[t,await DFO.team(t).catch(()=>null)]));const dfoByTeam=Object.fromEntries(dfoPairs);const goalieBoard=await DFO.goalieBoard(date).catch(()=>null);const goalieStatus=r=>{const o=officialEntry(r);if(o?.goalie){const starter=o.entry.starter===true||o.entry.isStarter===true;return sourceBadge(starter?'Confirmed':'NHL rostered','Official NHL game boxscore')};const p=goalieBoard?.players?.[kk(r.name)];if(p)return sourceBadge(p.status,p.detail.slice(0,55));return sourceBadge('Not confirmed','No DFO report matched')};const lineupStatus=r=>{const official=officialEntry(r);if(official&&!official.goalie)return sourceBadge('Confirmed','Official NHL game boxscore');const p=me(r),t=(p?.t||r.team||'').toUpperCase(),k=dfoByTeam[t]?.names?.[kk(r.name)];if(k==='F')return sourceBadge('Projected','DFO forward lines');if(k==='D')return sourceBadge('Projected','DFO defence pairs');if(k==='PP1')return sourceBadge('Projected','DFO PP1');if(k==='PP2')return sourceBadge('Projected','DFO PP2');if(k==='OUT')return sourceBadge('OUT','DFO injury list');if(k==='G')return goalieStatus(r);return sourceBadge('Not listed','No DFO lineup match')};
- const gameText=t=>{
-  const g=gFor(t);if(!g)return '<span class="lineup-state">NO GAME</span>';
-  const a=g.awayTeam||{},h=g.homeTeam||{},s=String(g.gameState||'').toUpperCase(),live=['LIVE','CRIT','IN_PROGRESS'].includes(s),final=['FINAL','OFF'].includes(s);
-  if(live)return '<span class="lineup-state live">● LIVE '+(a.abbrev===t?(a.score??0)+'–'+(h.score??0):(h.score??0)+'–'+(a.score??0))+' · '+esc(g.clock?.timeRemaining||'')+'</span>';
-  if(final)return '<span class="lineup-state final">FINAL '+(a.abbrev===t?(a.score??0)+'–'+(h.score??0):(h.score??0)+'–'+(a.score??0))+'</span>';
-  const tm=g.startTimeUTC?new Date(g.startTimeUTC).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'SCHEDULED';
-  return '<span class="lineup-state soon">TODAY · '+esc(tm)+'</span>';
- };
- if(!lineupPick[date])lineupAuto();
- const ids=active(),caps=lineupSlots(),count={C:0,W:0,D:0,G:0};
- roster.forEach((r,i)=>{if(ids.has(lineupId(r,i))){const p=me(r),z=p?.pos||r.pos||'W',k=z==='G'?'G':z==='D'?'D':z==='C'?'C':'W';count[k]++}});
- const groups=[['C','CENTRES'],['W','WINGERS'],['D','DEFENCE'],['G','GOALIES']];
- const renderGroup=(slot,label)=>{
-  const list=roster.map((r,i)=>({r,i,p:me(r),key:lineupId(r,i)})).filter(x=>{const z=x.p?.pos||x.r.pos||'W';return(slot==='W'?(z!=='G'&&z!=='D'&&z!=='C'):z===slot)});
-  return '<div class="lineup-panel"><div class="lineup-top"><b>'+label+'</b><span class="small">'+count[slot]+' / '+caps[slot]+' starting</span></div>'+(list.length?list.map(x=>{const t=x.p?.t||x.r.team||'',on=ids.has(x.key);return '<div class="lineup-player"><div class="lp-info"><div class="lp-name">'+(x.p?nm(x.p):esc(x.r.name))+'</div><div class="lp-meta">'+esc(t||'Team unknown')+' · '+(x.p?.pos||x.r.pos||slot)+(x.r.ir?' · IR':'')+'</div><div>'+gameText(t)+'</div>'+(x.r.pos==='G'?goalieStatus(x.r):lineupStatus(x.r))+'</div><button class="lineup-toggle '+(on?'on':'')+'" onclick="IHQ.lineupToggle(\''+esc(x.key)+'\')">'+(on?'STARTING':'BENCH')+'</button></div>'}).join(''):'<div class="empty">No '+label.toLowerCase()+' on your saved roster.</div>')+'</div>';
- };
- $('lineup').innerHTML='<h2>Set Your Lineup</h2><p class="sub">Choose who starts today. Your selections save on this device. NHL scores plus Daily Faceoff lineup and goalie reports. Projected is not the same as confirmed.</p><div class="card"><div class="lineup-top"><div><b>'+esc(dayLabel)+'</b><div class="small">Daily starters · NHL scoreboard '+(games.length?'updated':'not available')+'</div></div><input type="date" value="'+date+'" onchange="IHQ.lineupDate(this.value)" style="max-width:175px"></div><div class="lineup-counts">'+groups.map(([k,l])=>'<span>'+l+': <b>'+count[k]+'/'+caps[k]+'</b></span>').join('')+'</div><div class="btnrow"><button class="btn" onclick="IHQ.lineupAuto()">Auto-fill starting slots</button><button class="btn secondary" onclick="IHQ.lineupRefresh()">Refresh live status</button></div><p class="small" style="margin:10px 0 0">Auto-fill uses your saved roster order and league slot counts. You can change any starter manually.</p></div><div class="lineup-board" style="margin-top:14px">'+groups.map(([k,l])=>renderGroup(k,l)).join('')+'</div><div class="callout" style="margin-top:13px">SOURCE RULES: Daily Faceoff reports are shown with their own labels; projected is never upgraded to confirmed by guesswork. If the source cannot be reached or matched, the app says Not confirmed. <a href="https://www.dailyfaceoff.com/starting-goalies" target="_blank" rel="noopener">Daily Faceoff starting goalies</a> · <a href="https://www.dailyfaceoff.com/teams" target="_blank" rel="noopener">Daily Faceoff line combinations</a> · <a href="https://www.nhl.com/scores" target="_blank" rel="noopener">Official NHL scores</a>.</div>';
-};
-
-const oldShow=window.showTab;
-window.showTab=id=>{oldShow(id);if(R[id]){$(id).innerHTML='<div class="empty">Loading…</div>';R[id]().catch(e=>$(id).innerHTML=err(e))}};
-const redraw=()=>{const a=document.querySelector('.page:not(.hidden)');if(a&&R[a.id])R[a.id]().catch(e=>a.innerHTML=err(e))};
-setInterval(()=>{const a=document.querySelector('.page:not(.hidden)');if(a&&a.id==='lineup'&&!document.hidden)R.lineup().catch(e=>a.innerHTML=err(e))},45000);
-window.IHQ={pos:v=>{S.pos=v;redraw()},wk:v=>{S.wk=+v;redraw()},lineupToggle:k=>lineupToggle(k),lineupAuto:()=>{lineupAuto();R.lineup()},lineupDate:v=>{lineupDate=v;R.lineup()},lineupRefresh:()=>R.lineup()};
-
 /* ---------- Weekly Pickups spreadsheet ---------- */
 R.weekly=async()=>{
  await load();const w=S.wk,dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
