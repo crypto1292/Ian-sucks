@@ -6,6 +6,12 @@
  const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
  const fmtTime=s=>{if(!s)return '';const d=new Date(s);return isNaN(d)?s:d.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})};
  const get=async(url)=>{
+  const key='ihq_api_cache_v2:'+url;
+  const now=Date.now();
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(key)||'null')}catch{}
+  const freshFor=url.includes('/score/')?12000:url.includes('/play-by-play')||url.includes('/boxscore')?20000:90000;
+  if(saved?.data&&now-saved.time<freshFor)return saved.data;
   const isNhl=url.startsWith('https://api-web.nhle.com/');
   const routes=isNhl
    ? [
@@ -15,20 +21,38 @@
       'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)
      ]
    : [url];
-  let lastError=null;
-  for(const requestUrl of routes){
-   const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
-   try{
-    const response=await fetch(requestUrl,{cache:'no-store',credentials:'omit',signal:c.signal});
-    if(!response.ok)throw Error('Feed returned HTTP '+response.status);
-    return await response.json();
-   }catch(e){
-    lastError=e;
-   }finally{clearTimeout(t)}
+  const controllers=[];
+  try{
+   const attempts=routes.map(requestUrl=>{
+    const controller=new AbortController();controllers.push(controller);
+    return (async()=>{
+     const timer=setTimeout(()=>controller.abort(),8500);
+     try{
+      const response=await fetch(requestUrl,{cache:'no-store',credentials:'omit',signal:controller.signal});
+      if(!response.ok)throw Error('Feed returned HTTP '+response.status);
+      const data=await response.json();
+      try{
+       localStorage.setItem(key,JSON.stringify({time:Date.now(),data}));
+       const keys=Object.keys(localStorage).filter(k=>k.startsWith('ihq_api_cache_v2:'));
+       if(keys.length>90)keys.slice(0,keys.length-75).forEach(k=>localStorage.removeItem(k));
+      }catch{}
+      return data;
+     }finally{clearTimeout(timer)}
+    })();
+   });
+   const data=await Promise.any(attempts);
+   controllers.forEach(c=>c.abort());
+   return data;
+  }catch(error){
+   controllers.forEach(c=>c.abort());
+   if(saved?.data&&now-saved.time<600000)return saved.data;
+   if(error?.name==='AggregateError'){
+    const errors=error.errors||[];
+    if(errors.some(e=>e?.name==='AbortError'))throw Error('NHL feed timed out. Try again shortly.');
+    if(errors.some(e=>e instanceof TypeError))throw Error('NHL data routes were blocked by the browser or network.');
+   }
+   throw error||Error('NHL feed unavailable.');
   }
-  if(lastError?.name==='AbortError')throw Error('NHL feed timed out through both data routes. Try again shortly.');
-  if(lastError instanceof TypeError)throw Error('All NHL data routes were blocked by the browser or network. Try switching Wi-Fi/mobile data, then refresh.');
-  throw lastError||Error('NHL feed unavailable.');
  };
  const nhl='https://api-web.nhle.com/v1/';
  const espn='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/';
