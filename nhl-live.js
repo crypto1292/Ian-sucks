@@ -88,6 +88,7 @@
  }
  async function renderGoals(){
   if(goalBusy)return;goalBusy=true;const root=$('livefeed');if(!root){goalBusy=false;return}
+  root.innerHTML='<div class="nhl-page-head"><div><span class="nhl-eyebrow">AROUND THE RINK</span><h2>Live Moments</h2><p class="sub">Connecting to the official NHL scoring feed…</p></div></div><div class="empty">Loading today’s goals and credited assists. This may take a few seconds.</div>';
   try{
    const date=today(),score=await get(nhl+'score/'+date),games=score.games||[];
    const summaries=await Promise.all(games.map(async g=>{
@@ -161,6 +162,7 @@
   if(b.dataset.tab==='livefeed')renderGoals();
  },true);
  window.loadLiveMoments=renderGoals;
+ window.loadNhlUpdates=renderUpdates;
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){const p=document.querySelector('.page:not(.hidden)');if(p?.id==='nhlupdates')renderUpdates();if(p?.id==='livefeed')renderGoals()}});
  setInterval(()=>{const p=document.querySelector('.page:not(.hidden)');if(document.hidden)return;if(p?.id==='nhlupdates'&&Date.now()-lastUpdate>85000)renderUpdates();if(p?.id==='livefeed'&&Date.now()-lastGoals>25000)renderGoals()},15000);
 })();
